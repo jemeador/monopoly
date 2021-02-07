@@ -8,7 +8,10 @@
 
 namespace monopoly
 {
-	class GameSetup;
+	static constexpr int NumberOfSpaces = 40;
+	static constexpr int MaxJailTurns = 3;
+	static constexpr int BailCost = 50;
+	static constexpr int GoSalary = 200;
 
 	enum class PropertyGroup
 	{
@@ -222,8 +225,6 @@ namespace monopoly
 		LuxuryTax,
 		Blue_2,
 	};
-
-	static constexpr int NumberOfSpaces = 40;
 
 	inline Property space_to_property (Space s) {
 		switch (s) {

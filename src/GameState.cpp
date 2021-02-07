@@ -51,8 +51,11 @@ void GameState::force_property_auction(int decliningPlayer) {
 	force_turn_end(); // todo auction
 }
 
+void GameState::force_add_funds(int playerIndex, int funds) {
+	players[playerIndex].funds += funds;
+}
+
 void GameState::force_subtract_funds(int playerIndex, int funds) {
-	assert (players[playerIndex].funds >= funds);
 	players[playerIndex].funds -= funds;
 }
 
@@ -75,22 +78,26 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 	if (players[playerIndex].turnsRemainingInJail > 0) {
 		if (doublesStreak > 0) {
 			doublesStreak = 0;
+			std::cout << player_name(playerIndex) << " rolled doubles and left jail" << std::endl;
 			force_leave_jail(playerIndex);
 		}
 		else {
 			auto& t = players[playerIndex].turnsRemainingInJail;
 			t -= 1;
 			if (t > 0) {
+				std::cout << player_name(playerIndex) << " is stuck in jail" << std::endl;
 				force_turn_end();
 				return;
 			}
 			else {
-				force_subtract_funds(playerIndex, 50);
+				std::cout << player_name(playerIndex) << " must pay fine" << std::endl;
+				force_subtract_funds(playerIndex, BailCost);
 			}
 		}
 	}
 	else if (doublesStreak == 3) {
 		doublesStreak = 0;
+		std::cout << player_name(playerIndex) << " went to jail for rolling 3 doubles in a row" << std::endl;
 		force_go_to_jail(playerIndex);
 		return;
 	}
@@ -101,7 +108,7 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 
 void GameState::force_go_to_jail(int playerIndex) {
 	force_position(playerIndex, Space::Jail);
-	players[playerIndex].turnsRemainingInJail = 3;
+	players[playerIndex].turnsRemainingInJail = MaxJailTurns;
 	force_turn_end();
 }
 
@@ -112,8 +119,25 @@ void GameState::force_leave_jail(int playerIndex) {
 void GameState::force_advance(int playerIndex, int spaceCount) {
 	auto const currentPos = players[playerIndex].position;
 	// Spaces are enumerated such that they are ordered according to their position on the board
-	auto const newPosIndex = (static_cast<int> (currentPos) + spaceCount) % NumberOfSpaces;
+	auto newPosIndex = static_cast<int> (currentPos) + spaceCount;
+
+	while (newPosIndex >= NumberOfSpaces) {
+		newPosIndex -= NumberOfSpaces;
+		force_add_funds(playerIndex, GoSalary);
+	}
+
 	force_land(playerIndex, static_cast<Space> (newPosIndex));
+}
+
+void GameState::force_advance_to(int playerIndex, Space space) {
+	auto const currentPos = players[playerIndex].position;
+	auto distance = (static_cast<int> (space) - static_cast<int> (currentPos));
+
+	if (distance < 0) {
+		distance += NumberOfSpaces;
+	}
+
+	force_advance(playerIndex, distance);
 }
 
 void GameState::force_land(int playerIndex, Space space) {

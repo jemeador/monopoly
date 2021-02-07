@@ -39,6 +39,10 @@ namespace monopoly
             queue_use_get_out_of_jail_free_card_input(playerIndex);
         }
 
+        void pay_bail(int playerIndex) {
+            queue_pay_bail_input(playerIndex);
+        }
+
         bool has_input () {
             std::lock_guard<std::mutex> lock(inputMutex);
             return ! inputBuffer.empty();
@@ -72,6 +76,10 @@ namespace monopoly
         void queue_use_get_out_of_jail_free_card_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {}});
+        }
+        void queue_pay_bail_input(int playerIndex) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {}});
         }
 
         std::mutex inputMutex;

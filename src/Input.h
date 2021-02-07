@@ -38,6 +38,9 @@ namespace monopoly {
 		Deck::Type preferredDeckType = Deck::Type::Chance; // If players have both cards, the one from this deck will be turned in
 	};
 
+	struct PayBailInput {
+	};
+
 	struct BidInput {
 		int funds;
 	};
@@ -61,6 +64,7 @@ namespace monopoly {
 		UnmortgagePropertiesInput,
 		MortgagePropertiesInput,
 		UseGetOutOfJailFreeCardInput,
+		PayBailInput,
 		BidInput,
 		OfferTradeInput
 	>;

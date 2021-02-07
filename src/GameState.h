@@ -49,12 +49,14 @@ namespace monopoly
 		void force_turn_end();
 		void force_property_buy(int playerIndex, Property property);
 		void force_property_auction(int decliningPlayer);
+		void force_add_funds(int playerIndex, int funds);
 		void force_subtract_funds(int playerIndex, int funds);
 		void force_funds(int playerIndex, int funds);
 		void force_roll(int playerIndex, std::pair<int, int> roll);
 		void force_go_to_jail(int playerIndex);
 		void force_leave_jail(int playerIndex);
 		void force_advance(int playerIndex, int spaceCount);
+		void force_advance_to(int playerIndex, Space space);
 		void force_land(int playerIndex, Space space);
 		void force_position(int playerIndex, Space space);
 		void force_purchase_prompt(int playerIndex, Property property);

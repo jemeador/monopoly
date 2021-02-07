@@ -1,11 +1,7 @@
-#include "Game.h"
-#include "TestInterface.h"
+#include "Test.h"
 using namespace monopoly;
 
 #include "catch2/catch.hpp"
-
-#include <cassert>
-#include <thread>
 
 SCENARIO("Whenever you land on an unowned property you may buy that property at its printed price. If you don't buy it, it's auctioned.", "[property]") {
 	TestInterface interface;

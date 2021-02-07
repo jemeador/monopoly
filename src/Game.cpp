@@ -95,6 +95,9 @@ void Game::process_input(int playerIndex, Input const &input) {
 	else if (auto inputPtr = std::get_if<UseGetOutOfJailFreeCardInput>(&input)) {
 		process_use_get_out_of_jail_free_card_input(playerIndex, *inputPtr);
 	}
+	else if (auto inputPtr = std::get_if<PayBailInput>(&input)) {
+		process_pay_bail_input(playerIndex, *inputPtr);
+	}
 	else if (auto inputPtr = std::get_if<BidInput>(&input)) {
 		process_bid_input(playerIndex, *inputPtr);
 	}
@@ -174,6 +177,26 @@ void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOu
 	}
 
 	state.force_get_out_of_jail_free_card_use(playerIndex, input.preferredDeckType);
+}
+
+void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
+	if (state.get_turn_phase() != TurnPhase::TurnStart) {
+		return;
+	}
+	if (state.get_active_player_index () != playerIndex) {
+		return;
+	}
+	auto const& player = state.get_player(playerIndex);
+
+	if (player.turnsRemainingInJail == 0 ()) {
+		return;
+	}
+	if (player.funds < BailCost) {
+		return;
+	}
+
+	state.force_subtract_funds(playerIndex, BailCost);
+	state.force_leave_jail(playerIndex);
 }
 
 void Game::process_bid_input(int playerIndex, BidInput const& input) {

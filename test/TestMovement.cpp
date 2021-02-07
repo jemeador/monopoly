@@ -1,89 +1,75 @@
-#include "Game.h"
-#include "TestInterface.h"
+#include "Test.h"
 using namespace monopoly;
 
 #include "catch2/catch.hpp"
 
 #include <cassert>
-#include <thread>
 
 SCENARIO("On a player's turn, they roll the dice and move the indicated number of spaces", "[turn]") {
-	TestInterface interface;
-	Game game (&interface);
+	Test test;
+	auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
 
     GIVEN ("Player 1 starts on GO") {
-		REQUIRE(game.get_state ().get_player(Player::p1).position == Space::Go);
+		test.move_player (Player::p1, Space::Go);
 
 		WHEN("player 1 rolls a 4 and a 6") {
-			interface.roll_loaded_dice(Player::p1, { 4, 6 });
-			game.wait_for_processing();
+			test.roll(4, 6);
 
 			THEN("player 1 advances 10 spaces") {
-				REQUIRE(game.get_state().get_player(Player::p1).position == Space::Jail);
+				test.require_position(Player::p1, Space::Jail);
 			}
 		}
     }
 
     GIVEN ("Player 1 starts on Short Line") {
-		GameState state;
-		state.force_position(Player::p1, Space::Railroad_4);
-		REQUIRE(state.get_player(Player::p1).position == Space::Railroad_4);
-
-		game.set_state(state);
+		test.move_player(Player::p1, Space::Railroad_4);
 
 		WHEN("player 1 rolls a 2 and a 3") {
-			interface.roll_loaded_dice(Player::p1, { 2, 3 });
-			game.wait_for_processing();
+			test.roll(2, 3);
 
-			THEN("player 1 advances 5 spaces, wrapping around to GO") {
-				REQUIRE(game.get_state().get_player(Player::p1).position == Space::Go);
+			THEN("player 1 advances 5 spaces, passing GO and collecting 200 dollars") {
+				test.require_position(Player::p1, Space::Go);
+				test.require_funds(Player::p1, startingFunds + GoSalary);
 			}
 		}
     }
 }
 
 SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") {
-	TestInterface interface;
-	Game game (&interface);
+	Test test;
 
     GIVEN ("Player 1 starts on GO") {
-		REQUIRE(game.get_state ().get_player(Player::p1).position == Space::Go);
+		test.move_player (Player::p1, Space::Go);
 
 		WHEN("player 1 rolls a 5 and a 5") {
-			interface.roll_loaded_dice(Player::p1, { 5, 5 });
-			game.wait_for_processing();
+			test.roll(5, 5);
 
 			THEN("player 1 advances 10 spaces and gets another roll") {
-				REQUIRE(game.get_state ().get_player(Player::p1).position == Space::Jail);
-				REQUIRE(game.get_state ().get_turn_phase() == TurnPhase::TurnStart);
-				REQUIRE(game.get_state ().get_active_player_index() == Player::p1);
+				test.require_position(Player::p1, Space::Jail);
+				test.require_phase(TurnPhase::TurnStart);
+				test.require_active_player(Player::p1);
 			}
 
 			AND_WHEN ("player 1 rolls doubles again") {
-				interface.roll_loaded_dice(Player::p1, { 5, 5 });
-				game.wait_for_processing();
-
-				REQUIRE(game.get_state ().get_player(Player::p1).position == Space::FreeParking);
-				REQUIRE(game.get_state ().get_turn_phase() == TurnPhase::TurnStart);
-				REQUIRE(game.get_state ().get_active_player_index() == Player::p1);
+				test.roll(5, 5);
+				test.require_position(Player::p1, Space::FreeParking);
+				test.require_phase(TurnPhase::TurnStart);
+				test.require_active_player(Player::p1);
 
 				AND_WHEN ("player 1 rolls doubles a third time") {
-					interface.roll_loaded_dice(Player::p1, { 1, 1 });
-					game.wait_for_processing();
+					test.roll(1, 1);
 
 					THEN("the player immediately goes to jail for rolling 3 doubles in a row and the game moves on") {
-						REQUIRE(game.get_state ().get_player(Player::p1).position == Space::Jail);
-						REQUIRE(game.get_state ().get_player(Player::p1).turnsRemainingInJail == 3);
+						test.require_jailed(Player::p1, true);
 					}
 				}
 			}
 			AND_WHEN("player 1 stops rolling doubles") {
-				interface.roll_loaded_dice(Player::p1, { 4, 6 });
-				game.wait_for_processing();
+				test.roll(4, 6);
 
 				THEN("the player simply moves, they aren't jailed, and the game moves on") {
-					REQUIRE(game.get_state ().get_player(Player::p1).position == Space::FreeParking);
-					REQUIRE(game.get_state ().get_player(Player::p1).turnsRemainingInJail == 0);
+					test.require_position(Player::p1, Space::FreeParking);
+					test.require_jailed(Player::p1, false);
 				}
 			}
 		}
@@ -91,71 +77,61 @@ SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") 
 }
 
 SCENARIO("It's a player's turn and they are in jail", "[turn]") {
-	TestInterface interface;
-	Game game (&interface);
+	Test test;
+	auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
 
     GIVEN ("Player 1 is in jail") {
-		GameState state;
-		state.force_go_to_jail(Player::p1);
-		state.force_turn_start(Player::p1);
-		REQUIRE(state.get_player(Player::p1).position == Space::Jail);
-		REQUIRE(state.get_player(Player::p1).turnsRemainingInJail == 3);
-		game.set_state(state);
+		test.jail_player(Player::p1);
+		test.set_active_player(Player::p1);
 
 		WHEN("player 1 rolls non-doubles") {
-			interface.roll_loaded_dice(Player::p1, { 4, 6 });
-			game.wait_for_processing();
+			test.roll(4, 6);
 
 			THEN("player 1 must stay in jail") {
-				REQUIRE(game.get_state ().get_player(Player::p1).position == Space::Jail);
+				test.require_jailed(Player::p1, true);
 			}
 			AND_WHEN("player 1 rolls non-doubles 2 more times") {
-				// Skip to Player 1 for second roll
-				state = game.get_state();
-				state.force_turn_start(Player::p1);
-				game.set_state(state);
-
-				interface.roll_loaded_dice(Player::p1, { 4, 6 });
-				game.wait_for_processing();
-
-				// Verify in jail
-				state = game.get_state();
-				REQUIRE(state.get_player(Player::p1).position == Space::Jail);
-
-				// Skip to Player 1 for third roll
-				state.force_turn_start(Player::p1);
-				game.set_state(state);
-
-				interface.roll_loaded_dice(Player::p1, { 4, 6 });
-				game.wait_for_processing();
+				test.set_active_player(Player::p1);
+				test.roll(4, 6);
+				test.require_jailed(Player::p1, true);
+				test.set_active_player(Player::p1);
+				test.roll(4, 6);
 
 				THEN("player 1 is forced to pay a fine and released") {
-					REQUIRE(game.get_state ().get_player(Player::p1).position == Space::FreeParking);
-					REQUIRE(game.get_state ().get_player(Player::p1).funds == state.get_player(Player::p1).funds - 50);
+					test.require_funds(Player::p1, startingFunds - BailCost);
+					test.require_jailed(Player::p1, false);
+					test.require_position(Player::p1, Space::FreeParking);
 				}
 			}
 		}
 		WHEN("player 1 rolls doubles") {
-			interface.roll_loaded_dice(Player::p1, { 5, 5 });
-			game.wait_for_processing();
+			test.roll (5, 5);
 
-			THEN("player 1 is able to leave jail") {
-				REQUIRE(game.get_state().get_player(Player::p1).position == Space::FreeParking);
-				REQUIRE(game.get_state().get_player(Player::p1).turnsRemainingInJail == 0);
+			THEN("player 1 is able to leave jail and moves") {
+				test.require_jailed(Player::p1, false);
+				test.require_position(Player::p1, Space::FreeParking);
 			}
 		}
-		AND_GIVEN("player has a Get Out of Jail Free card") {
-			state = game.get_state();
-			state.force_get_out_of_jail_free_card_keep(Player::p1, Deck::Type::Chance);
-			game.set_state(state);
+		AND_GIVEN("player 1 has a Get Out of Jail Free card") {
+			test.give_get_out_of_jail_free_card(Player::p1);
 
 			WHEN("player 1 uses a get out of jail free card") {
-				interface.use_get_out_of_jail_free_card(Player::p1);
-				game.wait_for_processing();
+				test.use_get_out_of_jail_free_card();
 
 				THEN("player 1 is able to leave jail") {
-					REQUIRE(game.get_state().get_player(Player::p1).position == Space::Jail);
-					REQUIRE(game.get_state().get_player(Player::p1).turnsRemainingInJail == 0);
+					test.require_jailed(Player::p1, false);
+				}
+			}
+		}
+		AND_GIVEN("player 1 has enough money to pay bail") {
+			test.set_player_funds(Player::p1, startingFunds);
+
+			WHEN("player 1 pays bail") {
+				test.pay_bail();
+
+				THEN("player 1 loses cost of bail and is able to leave jail") {
+					test.require_funds(Player::p1, startingFunds - BailCost);
+					test.require_jailed(Player::p1, false);
 				}
 			}
 		}

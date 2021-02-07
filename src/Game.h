@@ -43,6 +43,7 @@ namespace monopoly
 		void process_unmortgage_properties_input(int playerIndex, UnmortgagePropertiesInput const &input);
 		void process_mortgage_properties_input(int playerIndex, MortgagePropertiesInput const &input);
 		void process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const &input);
+		void process_pay_bail_input(int playerIndex, PayBailInput const &input);
 		void process_bid_input(int playerIndex, BidInput const &input);
 		void process_offer_trade_input (int playerIndex, OfferTradeInput const &input);
 
