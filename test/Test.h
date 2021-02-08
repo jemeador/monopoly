@@ -47,6 +47,16 @@ namespace monopoly
 			interface.roll_loaded_dice(pi, { a, b });
 			game.wait_for_processing();
 		}
+		inline void buy_property() {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.buy_property(Player::p1);
+			game.wait_for_processing();
+		}
+		inline void auction_property() {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.auction_property(Player::p1);
+			game.wait_for_processing();
+		}
 		inline void pay_bail() {
 			auto const pi = game.get_state().get_active_player_index();
 			interface.pay_bail(Player::p1);
@@ -64,6 +74,17 @@ namespace monopoly
 		inline void require_funds(int playerIndex, int funds) {
 			REQUIRE(game.get_state().get_player(playerIndex).funds == funds);
 		}
+		inline void require_has_deed(int playerIndex, Property property) {
+			auto d = game.get_state ().get_player(playerIndex).deeds;
+			REQUIRE(std::any_of(d.begin(), d.end(),
+				[property](Property p) { return p == property; }));
+		}
+		inline void require_does_not_have_deed(int playerIndex, Property property) {
+			auto d = game.get_state ().get_player(playerIndex).deeds;
+			REQUIRE(std::none_of(d.begin(), d.end(),
+				[property](Property p) { return p == property; }));
+		}
+
 		inline void require_jailed(int playerIndex, bool jailed) {
 			if (jailed) {
 				REQUIRE(game.get_state().get_player(playerIndex).turnsRemainingInJail > 0);
