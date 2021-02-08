@@ -145,36 +145,96 @@ namespace monopoly
 		return "N/A";
 	}
 
-	inline int list_price_of_property(Property p) {
+	inline int face_value_of_property(Property p) {
 		switch (p) {
 		case Property::Brown_1:
-		case Property::Brown_2: return 60;
+		case Property::Brown_2:
+			return 60;
 		case Property::LightBlue_1:
-		case Property::LightBlue_2: return 100;
-		case Property::LightBlue_3: return 120;
+		case Property::LightBlue_2:
+			return 100;
+		case Property::LightBlue_3:
+			return 120;
 		case Property::Magenta_1:
-		case Property::Magenta_2: return 140;
-		case Property::Magenta_3: return 160;
+		case Property::Magenta_2:
+			return 140;
+		case Property::Magenta_3:
+			return 160;
 		case Property::Orange_1:
-		case Property::Orange_2: return 180;
-		case Property::Orange_3: return 200;
+		case Property::Orange_2:
+			return 180;
+		case Property::Orange_3:
+			return 200;
 		case Property::Red_1:
-		case Property::Red_2: return 220;
-		case Property::Red_3: return 240;
+		case Property::Red_2:
+			return 220;
+		case Property::Red_3:
+			return 240;
 		case Property::Yellow_1:
-		case Property::Yellow_2: return 260;
-		case Property::Yellow_3: return 280;
+		case Property::Yellow_2:
+			return 260;
+		case Property::Yellow_3:
+			return 280;
 		case Property::Green_1:
-		case Property::Green_2: return 300;
-		case Property::Green_3: return 320;
-		case Property::Blue_1: return 350;
-		case Property::Blue_2: return 400;
+		case Property::Green_2:
+			return 300;
+		case Property::Green_3:
+			return 320;
+		case Property::Blue_1:
+			return 350;
+		case Property::Blue_2:
+			return 400;
 		case Property::Utility_1:
-		case Property::Utility_2: return 150;
+		case Property::Utility_2:
+			return 150;
 		case Property::Railroad_1:
 		case Property::Railroad_2:
 		case Property::Railroad_3:
-		case Property::Railroad_4: return 200;
+		case Property::Railroad_4:
+			return 200;
+		}
+		return 0;
+	}
+
+	inline int mortgage_value_of_property(Property p) {
+		return face_value_of_property (p) / 2;
+	}
+
+	inline int building_value(Property p) {
+		switch (p) {
+		case Property::Brown_1:
+		case Property::Brown_2:
+		case Property::LightBlue_1:
+		case Property::LightBlue_2:
+		case Property::LightBlue_3:
+			return 50;
+		case Property::Magenta_1:
+		case Property::Magenta_2:
+		case Property::Magenta_3:
+		case Property::Orange_1:
+		case Property::Orange_2:
+		case Property::Orange_3:
+			return 100;
+		case Property::Red_1:
+		case Property::Red_2:
+		case Property::Red_3:
+		case Property::Yellow_1:
+		case Property::Yellow_2: 
+		case Property::Yellow_3:
+			return 150;
+		case Property::Green_1:
+		case Property::Green_2:
+		case Property::Green_3:
+		case Property::Blue_1:
+		case Property::Blue_2:
+			return 200;
+		case Property::Utility_1:
+		case Property::Utility_2:
+		case Property::Railroad_1:
+		case Property::Railroad_2:
+		case Property::Railroad_3:
+		case Property::Railroad_4:
+			break;
 		}
 		return 0;
 	}
@@ -262,14 +322,6 @@ namespace monopoly
 
 	inline bool space_is_property (Space s) {
 		return space_to_property (s) != Property::Invalid;
-	}
-
-	inline Deck init_deck(Deck::Type deck_type)
-	{
-		Deck deck;
-		deck.load(deck_type);
-		deck.shuffle();
-		return deck;
 	}
 
 	inline void clamp_die_value(int &val) {

@@ -5,7 +5,7 @@ cmake_minimum_required (VERSION 3.8)
 
 add_subdirectory (lib/Catch2)
 
-add_executable (Test_Monopoly "TestProperty.cpp" "Test.cpp" "TestMovement.cpp" "Test.h")
+add_executable (Test_Monopoly "TestProperty.cpp" "Test.cpp" "TestMovement.cpp" "Test.h" "TestSpecialSpaces.cpp")
 
 target_link_libraries (Test_Monopoly PRIVATE MonopolyEngine)
 target_link_libraries (Test_Monopoly PRIVATE Catch2::Catch2)

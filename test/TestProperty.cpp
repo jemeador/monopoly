@@ -7,7 +7,7 @@ SCENARIO("Whenever you land on an unowned property you may buy that property at 
 	Test test;
 
     GIVEN ("The player has sufficient funds to buy Brown_2") {
-		test.set_player_funds(Player::p1, list_price_of_property(Property::Brown_2));
+		test.set_player_funds(Player::p1, face_value_of_property(Property::Brown_2));
 
 		WHEN("the player lands on Brown_2") {
 			test.roll(1, 2);
@@ -29,7 +29,7 @@ SCENARIO("Whenever you land on an unowned property you may buy that property at 
 		}
     }
     GIVEN ("The player has insufficient funds to buy Brown_2") {
-		test.set_player_funds(Player::p1, list_price_of_property(Property::Brown_2) - 1);
+		test.set_player_funds(Player::p1, face_value_of_property(Property::Brown_2) - 1);
 
 		WHEN("the player lands on Brown_2") {
 			test.roll(1, 2);

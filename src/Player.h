@@ -19,7 +19,6 @@ public:
 	std::set<Property> deeds;
 	int turnsRemainingInJail = 0;
 	std::set<Deck::Type> getOutOfJailFreeCards;
-
 };
 
 inline char const* player_name(int playerIndex) {

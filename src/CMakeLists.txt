@@ -5,10 +5,10 @@ cmake_minimum_required (VERSION 3.8)
 
 # Add source to this project's library.
 file (GLOB SOURCES *.cpp)
-add_library (MonopolyEngine ${SOURCES} "GameState.h" "GameState.cpp" "Input.h")
+add_library (MonopolyEngine ${SOURCES} "GameState.h" "GameState.cpp" "Input.h" )
 
 # Add source to this project's executable.
-add_executable (Monopoly app/main.cpp "GameState.h" "GameState.cpp" "Input.h")
+add_executable (Monopoly app/main.cpp "GameState.h" "GameState.cpp" "Input.h" )
 include_directories (Monopoly ".")
 target_link_libraries (Monopoly MonopolyEngine)
 

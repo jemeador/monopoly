@@ -50,8 +50,6 @@ namespace monopoly
 		void start();
 		void stop();
 
-		std::pair<int, int> random_dice_roll();
-
 		IInterface * const interface;
 		GameSetup const setup;
 
@@ -64,11 +62,6 @@ namespace monopoly
 		// Used to wait for processing on the thread to finish
 		std::mutex mutable stateMutex;
 		std::condition_variable waitCondition;
-
-		// Randomizers
-		std::random_device randomDevice;
-		std::mt19937 randomNumberGenerator;
-		std::uniform_int_distribution<int> rollDie;
 
 		int currentCycle;
 		GameState state;

@@ -16,9 +16,6 @@ Game::Game(IInterface *interface)
 	: interface (interface)
 	, setup (interface->get_setup ())
 	, state (setup)
-	, randomDevice ()
-	, randomNumberGenerator (randomDevice ())
-	, rollDie (1, 6)
 	, currentCycle (0)
 {
 	start();
@@ -123,7 +120,7 @@ void Game::process_roll_input(int playerIndex, RollInput const& input) {
 		state.force_roll(playerIndex, diceValues);
 	}
 	else {
-		state.force_roll(playerIndex, random_dice_roll ());
+		state.force_random_roll(playerIndex);
 	}
 }
 
@@ -223,11 +220,4 @@ void Game::stop() {
 	gameEndPromise.set_value();
 	gameThread.join();
 	std::cout << "Game over" << std::endl;
-}
-
-std::pair<int, int> Game::random_dice_roll() {
-	return {
-		rollDie(randomNumberGenerator),
-		rollDie(randomNumberGenerator)
-	};
 }
