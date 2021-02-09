@@ -35,12 +35,16 @@ namespace monopoly
 			state.force_funds(Player::p1, funds);
 			game.set_state(state);
 		}
-		inline void give_get_out_of_jail_free_card(int playerIndex, Deck::Type deckType = Deck::Type::Chance) {
+		inline void give_get_out_of_jail_free_card(int playerIndex, DeckType deckType = DeckType::Chance) {
 			auto state = game.get_state();
-			state.force_get_out_of_jail_free_card_keep(Player::p1, deckType);
+			state.force_keep_get_out_of_jail_free_card(Player::p1, deckType);
 			game.set_state(state);
 		}
-
+		inline void stack_deck(DeckType type, DeckContainer const &cardsToPlaceOnTop) {
+			auto state = game.get_state();
+			state.force_stack_deck(type, cardsToPlaceOnTop);
+			game.set_state(state);
+		}
 
 		inline void roll(int a, int b) {
 			auto const pi = game.get_state().get_active_player_index();

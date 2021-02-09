@@ -10,16 +10,21 @@ GameState::GameState(GameSetup setup)
 	: rng (std::seed_seq (setup.seed.begin (), setup.seed.end ()))
 	, phase (TurnPhase::TurnStart)
 	, bank ()
-	, chance (Deck::Type::Chance)
-	, communityChest (Deck::Type::CommunityChest)
+	, decks(init_decks (setup))
 	, players (init_players(setup))
 	, activePlayerIndex (0)
 	, doublesStreak (0)
 {
+	decks[DeckType::CommunityChest].shuffle(rng);
+	decks[DeckType::Chance].shuffle(rng);
 }
 
 Bank GameState::get_bank() const {
 	return bank;
+}
+
+int GameState::get_player_count() const {
+	return players.size();
 }
 
 Player GameState::get_player(int playerIndex) const {
@@ -59,9 +64,16 @@ void GameState::force_turn_start(int playerIndex) {
 	activePlayerIndex = playerIndex;
 }
 
+void GameState::force_turn_continue() {
+	if (doublesStreak > 0)
+		force_turn_start(activePlayerIndex);
+	else
+		force_turn_end();
+}
+
 void GameState::force_turn_end() {
-	phase = TurnPhase::TurnStart;
-	activePlayerIndex = get_next_player_index ();
+	doublesStreak = 0;
+	phase = TurnPhase::TurnEnd;
 }
 
 void GameState::force_funds(int playerIndex, int funds) {
@@ -74,6 +86,14 @@ void GameState::force_add_funds(int playerIndex, int funds) {
 
 void GameState::force_subtract_funds(int playerIndex, int funds) {
 	players[playerIndex].funds -= funds;
+}
+
+void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds) {
+	players[fromPlayerIndex].funds -= funds;
+	players[toPlayerIndex].funds += funds;
+
+	if (players[fromPlayerIndex].funds < 0)
+		force_liquidate_prompt(fromPlayerIndex, toPlayerIndex);
 }
 
 void GameState::force_go_to_jail(int playerIndex) {
@@ -123,7 +143,6 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 		}
 	}
 	else if (doublesStreak == 3) {
-		doublesStreak = 0;
 		std::cout << player_name(playerIndex) << " went to jail for rolling 3 doubles in a row" << std::endl;
 		force_go_to_jail(playerIndex);
 		return;
@@ -134,10 +153,15 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 }
 
 void GameState::force_advance(int playerIndex, int spaceCount) {
+
 	auto const currentPos = players[playerIndex].position;
 	// Spaces are enumerated such that they are ordered according to their position on the board
 	auto newPosIndex = static_cast<int> (currentPos) + spaceCount;
 
+	while (newPosIndex < 0) {
+		newPosIndex += NumberOfSpaces;
+		// There are no in-game effects that can cause going in reverse behind GO
+	}
 	while (newPosIndex >= NumberOfSpaces) {
 		newPosIndex -= NumberOfSpaces;
 		force_add_funds(playerIndex, GoSalary);
@@ -175,12 +199,22 @@ void GameState::force_land(int playerIndex, Space space) {
 	case Space::LuxuryTax:
 		force_luxury_tax(playerIndex);
 		break;
+	case Space::CommunityChest_1:
+	case Space::CommunityChest_2:
+	case Space::CommunityChest_3:
+		force_draw_community_chest_card(playerIndex);
+		break;
+	case Space::Chance_1:
+	case Space::Chance_2:
+	case Space::Chance_3:
+		force_draw_chance_card(playerIndex);
+		break;
+	case Space::GoToJail:
+		force_go_to_jail(playerIndex);
+		break;
 	}
 
-	if (doublesStreak > 0)
-		force_turn_start(playerIndex);
-	else
-		force_turn_end();
+	force_turn_continue();
 }
 
 void GameState::force_position(int playerIndex, Space space) {
@@ -193,7 +227,10 @@ void GameState::force_property_offer(int playerIndex, Property property) {
 			if (players[playerIndex].funds >= face_value_of_property (property))
 				force_property_offer_prompt(playerIndex, property);
 			else
-				force_property_auction(playerIndex);
+			{
+				force_property_auction(property);
+				force_turn_continue();
+			}
 		}
 }
 
@@ -201,6 +238,26 @@ void GameState::force_property_offer_prompt(int playerIndex, Property property) 
 	activePlayerIndex = playerIndex;
 	phase = TurnPhase::WaitingForBuyPropertyInput;
 	std::cout << player_name (playerIndex) << ": Do you want to buy " << to_string(property) << "?" << std::endl;
+}
+
+void GameState::force_stack_deck(DeckType deckType, DeckContainer const& cards) {
+	decks[deckType].stack_deck(cards);
+}
+
+void GameState::force_draw_chance_card(int playerIndex) {
+	force_draw_card(playerIndex, DeckType::Chance);
+}
+
+void GameState::force_draw_community_chest_card(int playerIndex) {
+	force_draw_card(playerIndex, DeckType::CommunityChest);
+}
+
+void GameState::force_draw_card(int playerIndex, DeckType deckType) {
+	auto& deck = decks[deckType];
+	std::cout << player_name(playerIndex) << " draws a " + to_string(deckType) + " card " << std::endl;
+	auto const card = deck.draw();
+	std::cout << "\t" << card_data(card).effectText << std::endl;
+	apply_card_effect(*this, playerIndex, card);
 }
 
 void GameState::force_income_tax(int playerIndex) {
@@ -220,48 +277,80 @@ void GameState::force_luxury_tax(int playerIndex) {
 void GameState::force_property_buy(int playerIndex, Property property) {
 	std::cout << "Purchasing property" << std::endl;
 	force_subtract_funds(playerIndex, face_value_of_property(property));
-	force_deed_transfer(bank.deeds, players[playerIndex].deeds, property);
-	force_turn_end();
+	force_transfer_deed(bank.deeds, players[playerIndex].deeds, property);
 }
 
-void GameState::force_property_auction(int decliningPlayer) {
+void GameState::force_property_auction(Property property) {
 	std::cout << "Auctioning property" << std::endl;
-	force_turn_end(); // todo auction
 }
 
-
-void GameState::force_deed_transfer(std::set<Property>& from, std::set<Property>& to, Property deed) {
+void GameState::force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed) {
 	auto const countErased = from.erase(deed);
 	assert(countErased == 1);
 	auto const insertRet = to.insert(deed);
 	assert(insertRet.second);
 }
 
-void GameState::force_deed_transfers(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds) {
+void GameState::force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds) {
 	for (auto deed : deeds)
-		force_deed_transfer(from, to, deed);
+		force_transfer_deed(from, to, deed);
 }
 
-void GameState::force_get_out_of_jail_free_card_keep(int playerIndex, Deck::Type deckType) {
-	force_get_out_of_jail_free_card_transfer(bank.getOutOfJailFreeCards, players[playerIndex].getOutOfJailFreeCards, deckType);
+void GameState::force_keep_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
+	auto& deck = decks[deckType];
+	deck.remove_card(get_out_of_jail_free_card (deckType));
+	players[playerIndex].getOutOfJailFreeCards.insert(deckType);
 }
 
-void GameState::force_get_out_of_jail_free_card_transfer(std::set<Deck::Type>& from, std::set<Deck::Type>& to, Deck::Type deckType) {
-	auto const countErased = from.erase(deckType);
+void GameState::force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType) {
+	auto& fromCards = players[fromPlayerIndex].getOutOfJailFreeCards;
+	auto& toCards = players[toPlayerIndex].getOutOfJailFreeCards;
+	auto const countErased = fromCards.erase(deckType);
 	assert(countErased == 1);
-	auto const insertRet = to.insert(deckType);
+	auto const insertRet = toCards.insert(deckType);
 	assert(insertRet.second);
 }
 
-void GameState::force_get_out_of_jail_free_card_use(int playerIndex, Deck::Type preferredDeckType) {
+void GameState::force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType) {
 	auto& player = players[playerIndex];
 	assert(player.turnsRemainingInJail > 0);
 	assert(player.getOutOfJailFreeCards.size () > 0);
 	// If player has preferred card, we will spend that one; othewise, just use whatever they have (which must be 1 card)
 	if (!player.getOutOfJailFreeCards.erase(preferredDeckType)) {
-		auto const spent = player.getOutOfJailFreeCards.erase(std::begin(player.getOutOfJailFreeCards));
+		player.getOutOfJailFreeCards.erase(std::begin(player.getOutOfJailFreeCards));
 	}
 	force_leave_jail(playerIndex);
+}
+
+void GameState::force_liquidate_prompt(int debtorPlayerIndex) {
+	/// \todo give debtor a chance to trade or liquidate assets 
+	force_bankrupt(debtorPlayerIndex);
+}
+
+void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex) {
+	/// \todo give debtor a chance to trade or liquidate assets 
+	force_bankrupt(debtorPlayerIndex, creditorPlayerIndex);
+}
+
+void GameState::force_bankrupt(int debtorPlayerIndex) {
+	auto &debtor = players[debtorPlayerIndex];
+	std::set<Property> deedsToAuction;
+	swap(deedsToAuction, debtor.deeds);
+
+	for (auto property : debtor.deeds) {
+		force_property_auction(property);
+	}
+}
+
+void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
+	auto& debtor = players[debtorPlayerIndex];
+	auto& creditor = players[creditorPlayerIndex];
+	// sell buildings
+	// sell houses
+	force_transfer_funds(debtorPlayerIndex, creditorPlayerIndex, debtor.funds); // likely negative
+	force_transfer_deeds(debtor.deeds, creditor.deeds, debtor.deeds);
+	creditor.getOutOfJailFreeCards.insert(begin(debtor.getOutOfJailFreeCards), end(debtor.getOutOfJailFreeCards));
+	// retire player
 }
 
 Player GameState::init_player(GameSetup const &setup) {
@@ -274,10 +363,15 @@ std::vector<Player> GameState::init_players(GameSetup const &setup) {
 	return std::vector<Player>(setup.playerCount, init_player(setup));
 }
 
-Deck GameState::init_deck(GameSetup const& setup, Deck::Type deck_type) {
-	Deck deck(deck_type);
-	deck.shuffle(rng);
-	return deck;
+Deck GameState::init_deck(GameSetup const& setup, DeckType deck_type) {
+	return Deck(deck_type);
+}
+
+std::map<DeckType, Deck> GameState::init_decks(GameSetup const& setup) {
+	return {
+		{ DeckType::Chance, init_deck(setup, DeckType::Chance) },
+		{ DeckType::CommunityChest, init_deck(setup, DeckType::CommunityChest) },
+	};
 }
 
 std::pair<int, int> GameState::random_dice_roll() {

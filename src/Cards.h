@@ -1,14 +1,22 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <random>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace monopoly
 {
-	class Game;
+	class GameState;
+
+	enum class DeckType
+	{
+		Chance,
+		CommunityChest,
+	};
 
 	enum class Card
 	{
@@ -45,7 +53,9 @@ namespace monopoly
 		CommunityChest_Repairs,
 	};
 
-	static auto const ChanceCards = std::vector<Card>{
+	using DeckContainer = std::vector<Card>;
+
+	static auto const ChanceCards = DeckContainer {
 		Card::Chance_AdvanceToBlue2,
 		Card::Chance_AdvanceToGo,
 		Card::Chance_AdvanceToMagenta1,
@@ -62,7 +72,7 @@ namespace monopoly
 		Card::Chance_PayEachPlayer50,
 		Card::Chance_Repairs,
 	};
-	static auto const CommunityChestCards = std::vector<Card> {
+	static auto const CommunityChestCards = DeckContainer {
 		Card::CommunityChest_AdvanceToGo,
 		Card::CommunityChest_CollectFromEachPlayer50,
 		Card::CommunityChest_Gain10,
@@ -83,11 +93,15 @@ namespace monopoly
 
 	struct CardData
 	{
-		std::string title;
-		std::string description;
-		std::function<void(Game& game)> effect;
+		std::string flavorText;
+		std::string effectText;
 	};
 
+	using CardEffect = std::function<void(GameState& state, int playerIndex)>;
+
+	std::string to_string (DeckType deckType);
+	CardData const &card_data (Card card);
+	void apply_card_effect (GameState& state, int playerIndex, Card card);
 
 	inline bool card_is_get_out_of_jail_free (Card card) {
 		return (
@@ -96,54 +110,63 @@ namespace monopoly
 			);
 	}
 
+	inline Card get_out_of_jail_free_card(DeckType deckType) {
+		switch (deckType) {
+		case DeckType::Chance:
+			return Card::Chance_GetOutOfJailFree;
+		case DeckType::CommunityChest:
+			return Card::CommunityChest_GetOutOfJailFree;
+		}
+		assert(false);
+		return Card::Chance_GetOutOfJailFree;
+	}
+
 	class Deck
 	{
 	public:
-		enum class Type
+		explicit Deck() {
+		}
+
+		explicit Deck(DeckType type)
 		{
-			Chance,
-			CommunityChest,
-		};
-		explicit Deck(Type type)
-		{
-			if (type == Deck::Type::Chance) {
+			if (type == DeckType::Chance) {
 				cards = ChanceCards;
 			} 
 			else {
 				cards = CommunityChestCards;
 			}
-			top = 0;
 		}
 		Card draw()
 		{
-			auto const card = cards[top++];
-
-			if (card == Card::Chance_GetOutOfJailFree ||
-				card == Card::CommunityChest_GetOutOfJailFree)
-				hasGetOutOfJailFree = false;
-
+			auto const card = cards.front();
+			cards.erase(cards.begin ());
+			cards.push_back(card);
 			return card;
 		}
-		void return_get_out_of_jail_free() {
-			hasGetOutOfJailFree = true;
+
+		void stack_deck(DeckContainer const &sortedCardsToPutOnTop) {
+			auto it = begin(cards);
+			for (auto desiredCard : sortedCardsToPutOnTop) {
+				auto desiredCardIt = std::find(it, cards.end (), desiredCard);
+				iter_swap(it++, desiredCardIt);
+			}
+		}
+
+		void add_card(Card card) {
+			cards.push_back(card);
+		}
+
+		void remove_card(Card card) {
+			auto const removedCardIt = std::find(cards.begin (), cards.end (), card);
+			if (removedCardIt != cards.end ())
+				cards.erase(removedCardIt);
 		}
 
 		void shuffle(std::mt19937 &rng)
 		{
-			auto begin = cards.begin();
-			auto const end = cards.end();
-			// We can exclude the get out of jail card without changing deck size by putting it at the top and incrementing the top
-			if (!hasGetOutOfJailFree) {
-				auto removedCardIt = std::find_if(begin, end, card_is_get_out_of_jail_free);
-				iter_swap(removedCardIt, begin);
-				++begin;
-			}
-			std::shuffle(begin, end, rng);
-			top = begin - cards.begin ();
+			std::shuffle(cards.begin (), cards.end (), rng);
 		}
 	private:
-		std::vector<Card> cards;
-		bool hasGetOutOfJailFree = true;
-		int top = 0;
+		DeckContainer cards;
 	};
 }

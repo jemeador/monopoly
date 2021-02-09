@@ -144,8 +144,9 @@ void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& i
 		state.force_property_buy(playerIndex, property);
 	}
 	else {
-		state.force_property_auction(playerIndex);
+		state.force_property_auction(property);
 	}
+	state.force_turn_continue();
 }
 
 void Game::process_buy_houses_input(int playerIndex, BuyHousesInput const& input) {
@@ -166,14 +167,14 @@ void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOu
 	}
 	auto const& player = state.get_player(playerIndex);
 
-	if (player.turnsRemainingInJail == 0 ()) {
+	if (player.turnsRemainingInJail == 0) {
 		return;
 	}
 	if (player.getOutOfJailFreeCards.empty()) {
 		return;
 	}
 
-	state.force_get_out_of_jail_free_card_use(playerIndex, input.preferredDeckType);
+	state.force_use_get_out_of_jail_free_card(playerIndex, input.preferredDeckType);
 }
 
 void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
@@ -185,7 +186,7 @@ void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
 	}
 	auto const& player = state.get_player(playerIndex);
 
-	if (player.turnsRemainingInJail == 0 ()) {
+	if (player.turnsRemainingInJail == 0) {
 		return;
 	}
 	if (player.funds < BailCost) {

@@ -6,10 +6,6 @@
 
 namespace monopoly
 {
-	enum class PromptType {
-		LandOnUnownedProperty,
-	};
-
 	class IInterface
 	{
 	public:

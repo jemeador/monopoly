@@ -35,7 +35,7 @@ namespace monopoly {
 	};
 
 	struct UseGetOutOfJailFreeCardInput {
-		Deck::Type preferredDeckType = Deck::Type::Chance; // If players have both cards, the one from this deck will be turned in
+		DeckType preferredDeckType = DeckType::Chance; // If players have both cards, the one from this deck will be turned in
 	};
 
 	struct PayBailInput {
@@ -48,7 +48,7 @@ namespace monopoly {
 	struct OfferTradeAssets {
 		int funds;
 		std::set<Property> deeds;
-		std::set<Deck::Type> getOutOfJailFreeCards;
+		std::set<DeckType> getOutOfJailFreeCards;
 	};
 	struct OfferTradeInput {
 		OfferTradeAssets offering;

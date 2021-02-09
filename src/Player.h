@@ -18,7 +18,7 @@ public:
 	Space position = Space::Go;
 	std::set<Property> deeds;
 	int turnsRemainingInJail = 0;
-	std::set<Deck::Type> getOutOfJailFreeCards;
+	std::set<DeckType> getOutOfJailFreeCards;
 };
 
 inline char const* player_name(int playerIndex) {
@@ -28,6 +28,7 @@ inline char const* player_name(int playerIndex) {
 	case Player::p3: return "Player 3";
 	case Player::p4: return "Player 4";
 	}
+	return "";
 }
 
 }
