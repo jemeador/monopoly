@@ -53,11 +53,11 @@
         },
         "Chance_AdvanceToNearestRailroad": {
             "flavorText": "",
-            "effectText": "Advance to nearest $${Railroad}"
+            "effectText": "Advance to nearest $${Railroad}. Pay double rent if rent is owed."
         },
         "Chance_AdvanceToNearestUtility": {
             "flavorText": "",
-            "effectText": "Advance to nearest $${Utility}"
+            "effectText": "Advance to nearest $${Utility}. Pay 10 times the sum of a random dice roll instead of rent if rent is owed"
         },
         "Chance_AdvanceToRailroad1": {
             "flavorText": "",

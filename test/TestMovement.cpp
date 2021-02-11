@@ -46,14 +46,14 @@ SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") 
 
 			THEN("player 1 advances 10 spaces and gets another roll") {
 				test.require_position(Player::p1, Space::Jail);
-				test.require_phase(TurnPhase::TurnStart);
+				test.require_phase(TurnPhase::WaitingForRoll);
 				test.require_active_player(Player::p1);
 			}
 
 			AND_WHEN ("player 1 rolls doubles again") {
 				test.roll(5, 5);
 				test.require_position(Player::p1, Space::FreeParking);
-				test.require_phase(TurnPhase::TurnStart);
+				test.require_phase(TurnPhase::WaitingForRoll);
 				test.require_active_player(Player::p1);
 
 				AND_WHEN ("player 1 rolls doubles a third time") {

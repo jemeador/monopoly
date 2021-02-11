@@ -10,17 +10,18 @@
 namespace monopoly
 {
 	enum class TurnPhase {
-		TurnStart,
+		WaitingForRoll,
 		WaitingForBuyPropertyInput,
 		Auction,
-		TurnEnd,
+		WaitingForTurnEnd,
 	};
 
 	inline char const* to_string(TurnPhase turnPhase) {
 		switch (turnPhase) {
-		case TurnPhase::TurnStart: return "TurnStart";
+		case TurnPhase::WaitingForRoll: return "WaitingForRoll";
 		case TurnPhase::WaitingForBuyPropertyInput: return "WaitingForBuyPropertyInput";
 		case TurnPhase::Auction: return "Auction";
+		case TurnPhase::WaitingForTurnEnd: return "WaitingForTurnEnd";
 		}
 		return "N/A";
 	}
@@ -53,7 +54,11 @@ namespace monopoly
 		int get_active_player_index() const;
 		int get_next_player_index() const;
 		int get_net_worth(int playerIndex) const;
+		std::optional<int> get_property_owner_index(Property property) const;
+		int get_properties_owned_in_group(int playerIndex, PropertyGroup group) const;
 		TurnPhase get_turn_phase() const;
+
+		std::pair<int, int> random_dice_roll();
 
 		void force_turn_start(int playerIndex);
 		void force_turn_continue();
@@ -69,8 +74,10 @@ namespace monopoly
 
 		void force_random_roll(int playerIndex);
 		void force_roll(int playerIndex, std::pair<int, int> roll);
-		void force_advance(int playerIndex, int spaceCount);
+		void force_advance(int playerIndex, int dist);
+		void force_advance_without_landing(int playerIndex, int dist);
 		void force_advance_to(int playerIndex, Space space);
+		void force_advance_to_without_landing(int playerIndex, Space space);
 		void force_land(int playerIndex, Space space);
 		void force_position(int playerIndex, Space space);
 
@@ -88,10 +95,11 @@ namespace monopoly
 		void force_income_tax(int playerIndex);
 		void force_luxury_tax(int playerIndex);
 
+		void force_give_deed(int playerIndex, Property property);
 		void force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed);
 		void force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds);
 
-		void force_keep_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
+		void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
 		void force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType);
 		void force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType);
 
@@ -105,8 +113,6 @@ namespace monopoly
 		static std::vector<Player> init_players(GameSetup const& setup);
 		static Deck init_deck(GameSetup const& setup, DeckType deck_type);
 		static std::map<DeckType, Deck> init_decks(GameSetup const& setup);
-
-		std::pair<int, int> random_dice_roll();
 
 		std::mt19937 rng;
 

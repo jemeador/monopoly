@@ -1,6 +1,7 @@
 #include "Cards.h"
 #include "GameState.h"
 #include "Strings.h"
+#include "Board.h"
 using namespace monopoly;
 
 #include "nlohmann/json.hpp"
@@ -9,77 +10,6 @@ using namespace monopoly;
 #include <iostream>
 #include <ranges>
 
-
-namespace {
-	char const *lookup_key(DeckType deckType) {
-		switch (deckType) {
-		case DeckType::Chance: return "Chance";
-		case DeckType::CommunityChest: return "CommunityChest";
-		}
-		return "";
-	}
-	char const *lookup_key(Card card) {
-		switch (card) {
-		case Card::Chance_AdvanceToBlue2: return "Chance_AdvanceToBlue2";
-		case Card::Chance_AdvanceToGo: return "Chance_AdvanceToGo";
-		case Card::Chance_AdvanceToMagenta1: return "Chance_AdvanceToMagenta1";
-		case Card::Chance_AdvanceToNearestRailroad: return "Chance_AdvanceToNearestRailroad";
-		case Card::Chance_AdvanceToNearestUtility: return "Chance_AdvanceToNearestUtility";
-		case Card::Chance_AdvanceToRailroad1: return "Chance_AdvanceToRailroad1";
-		case Card::Chance_AdvanceToRed3: return "Chance_AdvanceToRed3";
-		case Card::Chance_Gain150: return "Chance_Gain150";
-		case Card::Chance_Gain50: return "Chance_Gain50";
-		case Card::Chance_GetOutOfJailFree: return "Chance_GetOutOfJailFree";
-		case Card::Chance_GoBack3Spaces: return "Chance_GoBack3Spaces";
-		case Card::Chance_GoToJail: return "Chance_GoToJail";
-		case Card::Chance_Pay15: return "Chance_Pay15";
-		case Card::Chance_PayEachPlayer50: return "Chance_PayEachPlayer50";
-		case Card::Chance_Repairs: return "Chance_Repairs";
-		case Card::CommunityChest_AdvanceToGo: return "CommunityChest_AdvanceToGo";
-		case Card::CommunityChest_CollectFromEachPlayer50: return "CommunityChest_CollectFromEachPlayer50";
-		case Card::CommunityChest_Gain10: return "CommunityChest_Gain10";
-		case Card::CommunityChest_Gain100_A: return "CommunityChest_Gain100_A";
-		case Card::CommunityChest_Gain100_B: return "CommunityChest_Gain100_B";
-		case Card::CommunityChest_Gain100_C: return "CommunityChest_Gain100_C";
-		case Card::CommunityChest_Gain20: return "CommunityChest_Gain20";
-		case Card::CommunityChest_Gain200: return "CommunityChest_Gain200";
-		case Card::CommunityChest_Gain25: return "CommunityChest_Gain25";
-		case Card::CommunityChest_Gain45: return "CommunityChest_Gain45";
-		case Card::CommunityChest_GetOutOfJailFree: return "CommunityChest_GetOutOfJailFree";
-		case Card::CommunityChest_GoToJail: return "CommunityChest_GoToJail";
-		case Card::CommunityChest_Pay100: return "CommunityChest_Pay100";
-		case Card::CommunityChest_Pay150: return "CommunityChest_Pay150";
-		case Card::CommunityChest_Pay50: return "CommunityChest_Pay50";
-		case Card::CommunityChest_Repairs: return "CommunityChest_Repairs";
-		}
-		return "";
-	}
-
-	int distance(Space from, Space to) {
-		auto d = static_cast<int> (to) - static_cast<int> (from);
-		if (d < 0)
-			d += NumberOfSpaces;
-		return d;
-	}
-
-	Space nearest_space (Space pos, std::vector<Space> const &spaces) {
-		std::vector<int> distances;
-		std::transform(begin(spaces), end(spaces), begin(distances), [pos](Space space) { return distance (pos, space);});
-		auto const distIt = std::min_element(begin(distances), end(distances));
-		auto const spaceIt = begin(spaces) + (distIt - begin(distances));
-		return *spaceIt;
-	}
-}
-
-std::string monopoly::to_string(DeckType deckType) {
-	try {
-		return string_data().at("labels").at(lookup_key(deckType)).get<std::string>();
-	}
-	catch (...) {
-		return "N/A";
-	}
-}
-
 CardData const& monopoly::card_data(Card card) {
 	static std::unordered_map<Card, CardData> const card_data = []() {
 		std::unordered_map<Card, CardData> ret;
@@ -87,11 +17,11 @@ CardData const& monopoly::card_data(Card card) {
 			Card c = static_cast<Card> (i);
 			auto& singleCardData = ret[c];
 			try {
-				singleCardData.flavorText = card_flavor_text(lookup_key(c));
-				singleCardData.effectText = card_effect_text(lookup_key(c));
+				singleCardData.flavorText = card_flavor_text(c);
+				singleCardData.effectText = card_effect_text(c);
 			}
 			catch (...) {
-				std::cerr << "Bad definition for card \"" << lookup_key(c) << "\"" << std::endl;
+				std::cerr << "Bad definition for card \"" << to_string(c) << "\"" << std::endl;
 			}
 		}
 		return ret;
@@ -114,12 +44,33 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 		ret[Card::Chance_AdvanceToNearestRailroad] = [](GameState& state, int playerIndex) {
 			auto const pos = state.get_player(playerIndex).position;
 			auto const dest = nearest_space(pos, { Space::Railroad_1, Space::Railroad_2, Space::Railroad_3, Space::Railroad_4 });
-			state.force_advance_to(playerIndex, dest);
+			state.force_advance_to_without_landing(playerIndex, dest);
+			auto const property = space_to_property(dest);
+			if (auto const ownerOpt = state.get_property_owner_index(property)) {
+				auto const owner = *ownerOpt;
+				auto const ownedGroupCount = state.get_properties_owned_in_group(owner, PropertyGroup::Railroad);
+				// Rent is doubled
+				state.force_transfer_funds(playerIndex, owner, 2 * rent_price_of_railroad(ownedGroupCount));
+			}
+			else {
+				state.force_property_offer(playerIndex, property);
+			}
 		};
 		ret[Card::Chance_AdvanceToNearestUtility] = [](GameState& state, int playerIndex) {
 			auto const pos = state.get_player(playerIndex).position;
 			auto const dest = nearest_space(pos, { Space::Utility_1, Space::Utility_2 });
-			state.force_advance_to(playerIndex, dest);
+			state.force_advance_to_without_landing(playerIndex, dest);
+			auto const property = space_to_property(dest);
+			if (auto const ownerOpt = state.get_property_owner_index(property)) {
+				auto const owner = *ownerOpt;
+				// Pay 10 times a random roll
+				auto const roll = state.random_dice_roll();
+				auto const sum = roll.first + roll.second;
+				state.force_transfer_funds(playerIndex, owner, 10 * sum);
+			}
+			else {
+				state.force_property_offer(playerIndex, property);
+			}
 		};
 		ret[Card::Chance_AdvanceToRailroad1] = [](GameState& state, int playerIndex) {
 			state.force_advance_to(playerIndex, Space::Railroad_1);
@@ -134,7 +85,7 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 			state.force_add_funds(playerIndex, 50);
 		};
 		ret[Card::Chance_GetOutOfJailFree] = [](GameState& state, int playerIndex) {
-			state.force_keep_get_out_of_jail_free_card(playerIndex, DeckType::Chance);
+			state.force_give_get_out_of_jail_free_card(playerIndex, DeckType::Chance);
 		};
 		ret[Card::Chance_GoBack3Spaces] = [](GameState& state, int playerIndex) {
 			state.force_advance(playerIndex, -3);
@@ -186,7 +137,7 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 			state.force_add_funds(playerIndex, 40);
 		};
 		ret[Card::CommunityChest_GetOutOfJailFree] = [](GameState& state, int playerIndex) {
-			state.force_keep_get_out_of_jail_free_card(playerIndex, DeckType::CommunityChest);
+			state.force_give_get_out_of_jail_free_card(playerIndex, DeckType::CommunityChest);
 		};
 		ret[Card::CommunityChest_GoToJail] = [](GameState& state, int playerIndex) {
 			state.force_go_to_jail(playerIndex);

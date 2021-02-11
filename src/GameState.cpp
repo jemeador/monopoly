@@ -1,5 +1,6 @@
 #include"GameState.h"
 #include"Board.h"
+#include"Strings.h"
 using namespace monopoly;
 
 #include<algorithm>
@@ -8,7 +9,7 @@ using namespace monopoly;
 
 GameState::GameState(GameSetup setup) 
 	: rng (std::seed_seq (setup.seed.begin (), setup.seed.end ()))
-	, phase (TurnPhase::TurnStart)
+	, phase (TurnPhase::WaitingForRoll)
 	, bank ()
 	, decks(init_decks (setup))
 	, players (init_players(setup))
@@ -45,14 +46,27 @@ int GameState::get_net_worth(int playerIndex) const {
 	int netWorth = p.funds;
 	// Add property values
 	std::transform(begin(p.deeds), end(p.deeds), std::back_inserter(values),
-		[this](Property p) -> int { return mortgagedPropreties.count(p) ? mortgage_value_of_property(p) : face_value_of_property(p); });
+		[this](Property p) -> int { return mortgagedPropreties.count(p) ? mortgage_value_of_property(p) : price_of_property(p); });
 	netWorth = std::accumulate(begin(values), end(values), netWorth);
 	values.clear();
 	// Add building values
 	std::transform(begin(p.deeds), end(p.deeds), std::back_inserter(values),
-		[this](Property p) -> int { return buildingLevel.at (p) * building_value (p); });
+		[this](Property p) -> int { return buildingLevel.at (p) * price_per_house_on_property (p); });
 	netWorth = std::accumulate(begin(values), end(values), netWorth);
 	return netWorth;
+}
+
+std::optional<int> GameState::get_property_owner_index(Property property) const {
+	for (auto p = 0; p < players.size(); ++p) {
+		if (players[p].deeds.count (property))
+			return p;
+	}
+	return {};
+ }
+
+int GameState::get_properties_owned_in_group(int playerIndex, PropertyGroup group) const {
+	auto const &deeds = players[playerIndex].deeds;
+	return std::count_if(deeds.begin(), deeds.end(), [group](Property property) { return property_in_group(property, group); });
 }
 
 TurnPhase GameState::get_turn_phase() const {
@@ -60,7 +74,7 @@ TurnPhase GameState::get_turn_phase() const {
 }
 
 void GameState::force_turn_start(int playerIndex) {
-	phase = TurnPhase::TurnStart;
+	phase = TurnPhase::WaitingForRoll;
 	activePlayerIndex = playerIndex;
 }
 
@@ -73,7 +87,7 @@ void GameState::force_turn_continue() {
 
 void GameState::force_turn_end() {
 	doublesStreak = 0;
-	phase = TurnPhase::TurnEnd;
+	phase = TurnPhase::WaitingForTurnEnd;
 }
 
 void GameState::force_funds(int playerIndex, int funds) {
@@ -91,6 +105,8 @@ void GameState::force_subtract_funds(int playerIndex, int funds) {
 void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds) {
 	players[fromPlayerIndex].funds -= funds;
 	players[toPlayerIndex].funds += funds;
+
+	std::cout << player_name(fromPlayerIndex) << " -($" << funds << ")-> " << player_name(toPlayerIndex) << std::endl;
 
 	if (players[fromPlayerIndex].funds < 0)
 		force_liquidate_prompt(fromPlayerIndex, toPlayerIndex);
@@ -152,33 +168,32 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 	force_advance(playerIndex, sum);
 }
 
-void GameState::force_advance(int playerIndex, int spaceCount) {
-
+void GameState::force_advance(int playerIndex, int dist) {
 	auto const currentPos = players[playerIndex].position;
-	// Spaces are enumerated such that they are ordered according to their position on the board
-	auto newPosIndex = static_cast<int> (currentPos) + spaceCount;
 
-	while (newPosIndex < 0) {
-		newPosIndex += NumberOfSpaces;
-		// There are no in-game effects that can cause going in reverse behind GO
-	}
-	while (newPosIndex >= NumberOfSpaces) {
-		newPosIndex -= NumberOfSpaces;
+	if (advancing_will_pass_go (currentPos, dist))
 		force_add_funds(playerIndex, GoSalary);
-	}
 
-	force_land(playerIndex, static_cast<Space> (newPosIndex));
+	force_land(playerIndex, add_distance(players[playerIndex].position, dist));
+}
+
+void GameState::force_advance_without_landing(int playerIndex, int dist) {
+	auto const currentPos = players[playerIndex].position;
+
+	if (advancing_will_pass_go (currentPos, dist))
+		force_add_funds(playerIndex, GoSalary);
+
+	force_position(playerIndex, add_distance(players[playerIndex].position, dist));
 }
 
 void GameState::force_advance_to(int playerIndex, Space space) {
 	auto const currentPos = players[playerIndex].position;
-	auto distance = (static_cast<int> (space) - static_cast<int> (currentPos));
+	force_advance(playerIndex, distance (currentPos, space));
+}
 
-	if (distance < 0) {
-		distance += NumberOfSpaces;
-	}
-
-	force_advance(playerIndex, distance);
+void GameState::force_advance_to_without_landing(int playerIndex, Space space) {
+	auto const currentPos = players[playerIndex].position;
+	force_advance_without_landing(playerIndex, distance (currentPos, space));
 }
 
 void GameState::force_land(int playerIndex, Space space) {
@@ -213,8 +228,6 @@ void GameState::force_land(int playerIndex, Space space) {
 		force_go_to_jail(playerIndex);
 		break;
 	}
-
-	force_turn_continue();
 }
 
 void GameState::force_position(int playerIndex, Space space) {
@@ -224,12 +237,12 @@ void GameState::force_position(int playerIndex, Space space) {
 void GameState::force_property_offer(int playerIndex, Property property) {
 		std::cout << "Offering unowned property" << std::endl;
 		if (bank.deeds.count(property)) {
-			if (players[playerIndex].funds >= face_value_of_property (property))
+			if (players[playerIndex].funds >= price_of_property(property)) {
 				force_property_offer_prompt(playerIndex, property);
+			}
 			else
 			{
 				force_property_auction(property);
-				force_turn_continue();
 			}
 		}
 }
@@ -276,12 +289,19 @@ void GameState::force_luxury_tax(int playerIndex) {
 
 void GameState::force_property_buy(int playerIndex, Property property) {
 	std::cout << "Purchasing property" << std::endl;
-	force_subtract_funds(playerIndex, face_value_of_property(property));
-	force_transfer_deed(bank.deeds, players[playerIndex].deeds, property);
+	force_subtract_funds(playerIndex, price_of_property(property));
+	force_give_deed(playerIndex, property);
+	force_turn_continue();
 }
 
 void GameState::force_property_auction(Property property) {
 	std::cout << "Auctioning property" << std::endl;
+	// todo auction
+	force_turn_continue();
+}
+
+void GameState::force_give_deed(int playerIndex, Property property) {
+	force_transfer_deed(bank.deeds, players[playerIndex].deeds, property);
 }
 
 void GameState::force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed) {
@@ -296,7 +316,7 @@ void GameState::force_transfer_deeds(std::set<Property>& from, std::set<Property
 		force_transfer_deed(from, to, deed);
 }
 
-void GameState::force_keep_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
+void GameState::force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
 	auto& deck = decks[deckType];
 	deck.remove_card(get_out_of_jail_free_card (deckType));
 	players[playerIndex].getOutOfJailFreeCards.insert(deckType);
@@ -376,8 +396,7 @@ std::map<DeckType, Deck> GameState::init_decks(GameSetup const& setup) {
 
 std::pair<int, int> GameState::random_dice_roll() {
 	static const std::uniform_int_distribution<int> rollDie(0, 6);
-	return {
-		rollDie(rng),
-		rollDie(rng)
-	};
+	auto const roll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
+	std::cout << "\t[" << roll.first << "] [" << roll.second << "]" << "\n";
+	return roll;
 }

@@ -41,9 +41,7 @@ void Game::reset() {
 void Game::wait_for_processing() {
 	std::unique_lock<std::mutex> lock(stateMutex);
 	auto cycle = currentCycle;
-	std::cout << "Waiting for input to process" << std::endl;
 	waitCondition.wait(lock, [cycle, this] {return cycle != currentCycle;});
-	std::cout << "Continuing" << std::endl;
 }
 
 std::unique_lock<std::mutex> Game::pause_processing() {
@@ -54,7 +52,6 @@ void Game::process() {
 	while (gameEndFuture.wait_for (33ms) == std::future_status::timeout) {
 		{
 			std::lock_guard<std::mutex> lock(stateMutex);
-			std::cout << "Cycle " << currentCycle << std::endl;
 			auto playerInputQueue = interface->poll();
 			int playerIndex;
 			Input input;
@@ -67,7 +64,6 @@ void Game::process() {
 		waitCondition.notify_all();
 		currentCycle++;
 	}
-	std::cout << "Game thread closed" << std::endl;
 }
 
 void Game::process_input(int playerIndex, Input const &input) {
@@ -77,8 +73,8 @@ void Game::process_input(int playerIndex, Input const &input) {
 	else if (auto inputPtr = std::get_if<BuyPropertyInput>(&input)) {
 		process_buy_property_input(playerIndex, *inputPtr);
 	}
-	else if (auto inputPtr = std::get_if<BuyHousesInput>(&input)) {
-		process_buy_houses_input(playerIndex, *inputPtr);
+	else if (auto inputPtr = std::get_if<BuyBuildingsInput>(&input)) {
+		process_buy_buildings_input(playerIndex, *inputPtr);
 	}
 	else if (auto inputPtr = std::get_if<SellHousesInput>(&input)) {
 		process_sell_houses_input(playerIndex, *inputPtr);
@@ -104,7 +100,7 @@ void Game::process_input(int playerIndex, Input const &input) {
 }
 
 void Game::process_roll_input(int playerIndex, RollInput const& input) {
-	if (state.get_turn_phase () != TurnPhase::TurnStart) {
+	if (state.get_turn_phase () != TurnPhase::WaitingForRoll) {
 		std::cout << player_name(playerIndex) << " can't roll right now; not the right phase (" << to_string (state.get_turn_phase ()) << ")" << std::endl;
 		return;
 	}
@@ -146,10 +142,9 @@ void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& i
 	else {
 		state.force_property_auction(property);
 	}
-	state.force_turn_continue();
 }
 
-void Game::process_buy_houses_input(int playerIndex, BuyHousesInput const& input) {
+void Game::process_buy_buildings_input(int playerIndex, BuyBuildingsInput const& input) {
 }
 void Game::process_sell_houses_input(int playerIndex, SellHousesInput const& input) {
 }
@@ -159,7 +154,7 @@ void Game::process_mortgage_properties_input(int playerIndex, MortgageProperties
 }
 
 void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {
-	if (state.get_turn_phase() != TurnPhase::TurnStart) {
+	if (state.get_turn_phase() != TurnPhase::WaitingForRoll) {
 		return;
 	}
 	if (state.get_active_player_index () != playerIndex) {
@@ -178,7 +173,7 @@ void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOu
 }
 
 void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
-	if (state.get_turn_phase() != TurnPhase::TurnStart) {
+	if (state.get_turn_phase() != TurnPhase::WaitingForRoll) {
 		return;
 	}
 	if (state.get_active_player_index () != playerIndex) {
@@ -217,7 +212,6 @@ void Game::start() {
 }
 
 void Game::stop() {
-	std::cout << "Closing game thread" << std::endl;
 	gameEndPromise.set_value();
 	gameThread.join();
 	std::cout << "Game over" << std::endl;

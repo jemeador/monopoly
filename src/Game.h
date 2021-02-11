@@ -38,7 +38,7 @@ namespace monopoly
 		void process_input(int playerIndex, Input const &input);
 		void process_roll_input(int playerIndex, RollInput const &input);
 		void process_buy_property_input(int playerIndex, BuyPropertyInput const &input);
-		void process_buy_houses_input(int playerIndex, BuyHousesInput const &input);
+		void process_buy_buildings_input(int playerIndex, BuyBuildingsInput const &input);
 		void process_sell_houses_input(int playerIndex, SellHousesInput const &input);
 		void process_unmortgage_properties_input(int playerIndex, UnmortgagePropertiesInput const &input);
 		void process_mortgage_properties_input(int playerIndex, MortgagePropertiesInput const &input);

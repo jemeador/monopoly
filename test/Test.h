@@ -4,6 +4,8 @@
 
 #include "catch2/catch.hpp"
 
+#include <functional>
+
 namespace monopoly
 {
 	struct Test {
@@ -15,60 +17,60 @@ namespace monopoly
 			, game(&interface) {
 		}
 
-		inline void set_active_player(int playerIndex) {
+		inline void change_state(std::function<void(GameState &)> func) {
 			auto state = game.get_state();
-			state.force_turn_start(playerIndex);
+			func(state);
 			game.set_state(state);
+		}
+
+		inline void set_active_player(int playerIndex) {
+			change_state(std::bind(&GameState::force_turn_start, std::placeholders::_1, playerIndex));
 		}
 		inline void move_player(int playerIndex, Space space) {
-			auto state = game.get_state();
-			state.force_position(playerIndex, space);
-			game.set_state(state);
+			change_state(std::bind(&GameState::force_position, std::placeholders::_1, playerIndex, space));
 		}
 		inline void jail_player(int playerIndex) {
-			auto state = game.get_state();
-			state.force_go_to_jail(Player::p1);
-			game.set_state(state);
+			change_state(std::bind(&GameState::force_go_to_jail, std::placeholders::_1, playerIndex));
 		}
 		inline void set_player_funds(int playerIndex, int funds) {
-			auto state = game.get_state();
-			state.force_funds(Player::p1, funds);
-			game.set_state(state);
+			change_state(std::bind(&GameState::force_funds, std::placeholders::_1, playerIndex, funds));
+		}
+		inline void give_deed(int playerIndex, Property property) {
+			change_state(std::bind(&GameState::force_give_deed, std::placeholders::_1, playerIndex, property));
 		}
 		inline void give_get_out_of_jail_free_card(int playerIndex, DeckType deckType = DeckType::Chance) {
-			auto state = game.get_state();
-			state.force_keep_get_out_of_jail_free_card(Player::p1, deckType);
-			game.set_state(state);
+			change_state(std::bind(&GameState::force_give_get_out_of_jail_free_card, std::placeholders::_1, playerIndex, deckType));
 		}
-		inline void stack_deck(DeckType type, DeckContainer const &cardsToPlaceOnTop) {
-			auto state = game.get_state();
-			state.force_stack_deck(type, cardsToPlaceOnTop);
-			game.set_state(state);
+		inline void stack_deck(DeckType deckType, DeckContainer const &cardsToPlaceOnTop) {
+			change_state(std::bind(&GameState::force_stack_deck, std::placeholders::_1, deckType, cardsToPlaceOnTop));
+		}
+		inline void land_on_space(int playerIndex, Space space) {
+			change_state(std::bind(&GameState::force_land, std::placeholders::_1, playerIndex, space));
 		}
 
 		inline void roll(int a, int b) {
 			auto const pi = game.get_state().get_active_player_index();
-			interface.roll_loaded_dice(pi, { a, b });
+			interface.roll_loaded_dice(pi, {a, b});
 			game.wait_for_processing();
 		}
 		inline void buy_property() {
 			auto const pi = game.get_state().get_active_player_index();
-			interface.buy_property(Player::p1);
+			interface.buy_property(pi);
 			game.wait_for_processing();
 		}
 		inline void auction_property() {
 			auto const pi = game.get_state().get_active_player_index();
-			interface.auction_property(Player::p1);
+			interface.auction_property(pi);
 			game.wait_for_processing();
 		}
 		inline void pay_bail() {
 			auto const pi = game.get_state().get_active_player_index();
-			interface.pay_bail(Player::p1);
+			interface.pay_bail(pi);
 			game.wait_for_processing();
 		}
 		inline void use_get_out_of_jail_free_card() {
 			auto const pi = game.get_state().get_active_player_index();
-			interface.use_get_out_of_jail_free_card(Player::p1);
+			interface.use_get_out_of_jail_free_card(pi);
 			game.wait_for_processing();
 		}
 

@@ -78,6 +78,13 @@ namespace monopoly
 		Invalid = -1,
 	};
 
+	inline PropertyGroup property_group(Property p) {
+		return static_cast<PropertyGroup> ((static_cast<int> (p) >> 2));
+	}
+	inline bool property_in_group(Property p, PropertyGroup g) {
+		return property_group(p) == g;
+	}
+
 	inline std::set<Property> const all_properties () {
 		return {
 			Property::Brown_1,
@@ -111,133 +118,13 @@ namespace monopoly
 		};
 	}
 
-	inline char const *to_string(Property property) {
-		switch (property) {
-		case Property::Brown_1: return "Brown_1";
-		case Property::Brown_2: return "Brown_2";
-		case Property::LightBlue_1: return "LightBlue_1";
-		case Property::LightBlue_2: return "LightBlue_2";
-		case Property::LightBlue_3: return "LightBlue_3";
-		case Property::Magenta_1: return "Magenta_1";
-		case Property::Magenta_2: return "Magenta_2";
-		case Property::Magenta_3: return "Magenta_3";
-		case Property::Orange_1: return "Orange_1";
-		case Property::Orange_2: return "Orange_2";
-		case Property::Orange_3: return "Orange_3";
-		case Property::Red_1: return "Red_1";
-		case Property::Red_2: return "Red_2";
-		case Property::Red_3: return "Red_3";
-		case Property::Yellow_1: return "Yellow_1";
-		case Property::Yellow_2: return "Yellow_2";
-		case Property::Yellow_3: return "Yellow_3";
-		case Property::Green_1: return "Green_1";
-		case Property::Green_2: return "Green_2";
-		case Property::Green_3: return "Green_3";
-		case Property::Blue_1: return "Blue_1";
-		case Property::Blue_2: return "Blue_2";
-		case Property::Utility_1: return "Utility_1";
-		case Property::Utility_2: return "Utility_2";
-		case Property::Railroad_1: return "Railroad_1";
-		case Property::Railroad_2: return "Railroad_2";
-		case Property::Railroad_3: return "Railroad_3";
-		case Property::Railroad_4: return "Railroad_4";
-		}
-		return "N/A";
-	}
-
-	inline int face_value_of_property(Property p) {
-		switch (p) {
-		case Property::Brown_1:
-		case Property::Brown_2:
-			return 60;
-		case Property::LightBlue_1:
-		case Property::LightBlue_2:
-			return 100;
-		case Property::LightBlue_3:
-			return 120;
-		case Property::Magenta_1:
-		case Property::Magenta_2:
-			return 140;
-		case Property::Magenta_3:
-			return 160;
-		case Property::Orange_1:
-		case Property::Orange_2:
-			return 180;
-		case Property::Orange_3:
-			return 200;
-		case Property::Red_1:
-		case Property::Red_2:
-			return 220;
-		case Property::Red_3:
-			return 240;
-		case Property::Yellow_1:
-		case Property::Yellow_2:
-			return 260;
-		case Property::Yellow_3:
-			return 280;
-		case Property::Green_1:
-		case Property::Green_2:
-			return 300;
-		case Property::Green_3:
-			return 320;
-		case Property::Blue_1:
-			return 350;
-		case Property::Blue_2:
-			return 400;
-		case Property::Utility_1:
-		case Property::Utility_2:
-			return 150;
-		case Property::Railroad_1:
-		case Property::Railroad_2:
-		case Property::Railroad_3:
-		case Property::Railroad_4:
-			return 200;
-		}
-		return 0;
-	}
-
-	inline int mortgage_value_of_property(Property p) {
-		return face_value_of_property (p) / 2;
-	}
-
-	inline int building_value(Property p) {
-		switch (p) {
-		case Property::Brown_1:
-		case Property::Brown_2:
-		case Property::LightBlue_1:
-		case Property::LightBlue_2:
-		case Property::LightBlue_3:
-			return 50;
-		case Property::Magenta_1:
-		case Property::Magenta_2:
-		case Property::Magenta_3:
-		case Property::Orange_1:
-		case Property::Orange_2:
-		case Property::Orange_3:
-			return 100;
-		case Property::Red_1:
-		case Property::Red_2:
-		case Property::Red_3:
-		case Property::Yellow_1:
-		case Property::Yellow_2: 
-		case Property::Yellow_3:
-			return 150;
-		case Property::Green_1:
-		case Property::Green_2:
-		case Property::Green_3:
-		case Property::Blue_1:
-		case Property::Blue_2:
-			return 200;
-		case Property::Utility_1:
-		case Property::Utility_2:
-		case Property::Railroad_1:
-		case Property::Railroad_2:
-		case Property::Railroad_3:
-		case Property::Railroad_4:
-			break;
-		}
-		return 0;
-	}
+	int price_of_property(Property p);
+	int price_per_house_on_property(Property p);
+	int rent_price_of_real_estate(Property p);
+	int rent_price_of_improved_real_estate(Property p, int buildingLevel);
+	int rent_price_of_railroad(int ownedRailroads);
+	int rent_price_of_utility(int ownedUtilities, std::pair<int, int> roll);
+	int mortgage_value_of_property(Property p);
 
 	enum class Space
 	{
@@ -320,8 +207,39 @@ namespace monopoly
 		return Property::Invalid;
 	}
 
-	inline bool space_is_property (Space s) {
+	inline bool space_is_property(Space s) {
 		return space_to_property (s) != Property::Invalid;
+	}
+
+	inline int space_to_index(Space s) {
+		return static_cast<int> (s);
+	}
+
+	inline Space index_to_space(int i) {
+		return static_cast<Space> (i % NumberOfSpaces);
+	}
+
+	inline bool advancing_will_pass_go(Space s, int dist) {
+		return (space_to_index (s) + dist) >= 40;
+	}
+
+	inline int distance(Space from, Space to) {
+		auto d = static_cast<int> (to) - static_cast<int> (from);
+		if (d < 0)
+			d += NumberOfSpaces;
+		return d;
+	}
+
+	inline Space add_distance(Space from, int dist) {
+		return index_to_space (space_to_index (from) + dist);
+	}
+
+	inline Space nearest_space (Space pos, std::vector<Space> const &spaces) {
+		std::vector<int> distances;
+		std::transform(begin(spaces), end(spaces), std::back_inserter(distances), [pos](Space space) { return distance (pos, space);});
+		auto const distIt = std::min_element(begin(distances), end(distances));
+		auto const spaceIt = begin(spaces) + (distIt - begin(distances));
+		return *spaceIt;
 	}
 
 	inline void clamp_die_value(int &val) {
