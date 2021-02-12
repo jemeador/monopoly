@@ -1,6 +1,7 @@
 #pragma once
 #include "Cards.h"
 
+#include <array>
 #include <cassert>
 #include <set>
 #include <string>
@@ -81,7 +82,62 @@ namespace monopoly
 	inline PropertyGroup property_group(Property p) {
 		return static_cast<PropertyGroup> ((static_cast<int> (p) >> 2));
 	}
-	inline bool property_in_group(Property p, PropertyGroup g) {
+
+	inline std::set<Property> properties_in_group(PropertyGroup group) {
+		static const std::vector<std::set<Property>> propertiesByGroup = {
+			{
+				Property::Brown_1,
+				Property::Brown_2,
+			},
+			{
+				Property::LightBlue_1,
+				Property::LightBlue_2,
+				Property::LightBlue_3,
+			},
+			{
+				Property::Magenta_1,
+				Property::Magenta_2,
+				Property::Magenta_3,
+			},
+			{
+				Property::Orange_1,
+				Property::Orange_2,
+				Property::Orange_3,
+			},
+			{
+				Property::Red_1,
+				Property::Red_2,
+				Property::Red_3,
+			},
+			{
+				Property::Yellow_1,
+				Property::Yellow_2,
+				Property::Yellow_3,
+			},
+			{
+				Property::Green_1,
+				Property::Green_2,
+				Property::Green_3,
+			},
+			{
+				Property::Blue_1,
+				Property::Blue_2,
+			},
+			{
+				Property::Utility_1,
+				Property::Utility_2,
+            },
+            {
+                Property::Railroad_1,
+                Property::Railroad_2,
+                Property::Railroad_3,
+                Property::Railroad_4,
+            },
+		};
+		return propertiesByGroup[static_cast<int> (group)];
+	}
+
+	inline bool property_is_in_group(Property p, PropertyGroup g) {
 		return property_group(p) == g;
 	}
 

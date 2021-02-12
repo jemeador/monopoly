@@ -44,10 +44,10 @@ namespace {
 }
 
 int monopoly::price_of_property(Property p) {
-	if (property_in_group(p, PropertyGroup::Railroad)) {
+	if (property_is_in_group(p, PropertyGroup::Railroad)) {
 		return 200;
 	}
-	else if (property_in_group(p, PropertyGroup::Utility)) {
+	else if (property_is_in_group(p, PropertyGroup::Utility)) {
 		return 150;
 	}
 	else {

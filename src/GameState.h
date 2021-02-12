@@ -58,8 +58,10 @@ namespace monopoly
 		int get_properties_owned_in_group(int playerIndex, PropertyGroup group) const;
 		TurnPhase get_turn_phase() const;
 		std::map<Property, int> const &get_building_levels() const;
+		int calculate_rent(Property property) const;
 
 		std::pair<int, int> random_dice_roll();
+		std::pair<int, int> get_last_dice_roll() const;
 
 		void force_turn_start(int playerIndex);
 		void force_turn_continue();
@@ -127,6 +129,7 @@ namespace monopoly
 		std::vector<Player> players;
 		int activePlayerIndex;
 		int doublesStreak;
+		std::pair<int, int> lastDiceRoll;
 
 		std::set<Property> mortgagedPropreties;
 		std::map<Property, int> buildingLevels;

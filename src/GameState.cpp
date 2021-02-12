@@ -15,6 +15,7 @@ GameState::GameState(GameSetup setup)
 	, players (init_players(setup))
 	, activePlayerIndex (0)
 	, doublesStreak (0)
+	, lastDiceRoll (0, 0)
 {
 	decks[DeckType::CommunityChest].shuffle(rng);
 	decks[DeckType::Chance].shuffle(rng);
@@ -66,7 +67,7 @@ std::optional<int> GameState::get_property_owner_index(Property property) const 
 
 int GameState::get_properties_owned_in_group(int playerIndex, PropertyGroup group) const {
 	auto const &deeds = players[playerIndex].deeds;
-	return std::count_if(deeds.begin(), deeds.end(), [group](Property property) { return property_in_group(property, group); });
+	return std::count_if(deeds.begin(), deeds.end(), [group](Property property) { return property_is_in_group(property, group); });
 }
 
 TurnPhase GameState::get_turn_phase() const {
@@ -76,6 +77,48 @@ TurnPhase GameState::get_turn_phase() const {
 std::map<Property, int> const& GameState::get_building_levels() const {
 	return buildingLevels;
 }
+
+int GameState::calculate_rent(Property property) const {
+	auto const ownerOpt = get_property_owner_index(property);
+	if (!ownerOpt) {
+		return 0;
+    }
+	auto const ownerIndex = *ownerOpt;
+	auto const &ownerDeeds = players[ownerIndex].deeds;
+	auto const group = property_group(property);
+    auto const ownedDeedsInGroup = get_properties_owned_in_group(ownerIndex, group);
+
+	if (group == PropertyGroup::Railroad) {
+		return rent_price_of_railroad(ownedDeedsInGroup);
+	}
+	else if (group == PropertyGroup::Utility) {
+		return rent_price_of_utility(ownedDeedsInGroup, lastDiceRoll);
+	}
+	else { // group is real estate
+		auto const buildingLevelIt = buildingLevels.find(property);
+        if (buildingLevelIt != buildingLevels.end () && buildingLevelIt->second > 0) {
+            return rent_price_of_improved_real_estate(property, buildingLevelIt->second);
+        }
+        else if (properties_in_group(group).size() == ownedDeedsInGroup) {
+            return 2 * rent_price_of_real_estate(property);
+        }
+        else {
+            return rent_price_of_real_estate(property);
+        }
+	}
+}
+
+std::pair<int, int> GameState::random_dice_roll() {
+	static const std::uniform_int_distribution<int> rollDie(0, 6);
+	auto const roll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
+	std::cout << "\t[" << roll.first << "] [" << roll.second << "]" << "\n";
+	return roll;
+}
+
+std::pair<int, int> GameState::get_last_dice_roll() const {
+	return lastDiceRoll;
+}
+
 
 void GameState::force_turn_start(int playerIndex) {
 	phase = TurnPhase::WaitingForRoll;
@@ -135,13 +178,14 @@ void GameState::force_leave_jail(int playerIndex) {
 }
 
 void GameState::force_random_roll(int playerIndex) {
-	force_roll(playerIndex, random_dice_roll ());
+	force_roll(playerIndex, lastDiceRoll);
 }
 
 void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 	assert_valid_die_value(roll.first);
 	assert_valid_die_value(roll.second);
 	activePlayerIndex = playerIndex;
+	lastDiceRoll = roll;
 
 	std::cout << "Rolled " << roll.first << "," << roll.second << std::endl;
 
@@ -212,11 +256,23 @@ void GameState::force_land(int playerIndex, Space space) {
 	activePlayerIndex = playerIndex;
 	force_leave_jail(playerIndex);
 	force_position(playerIndex, space);
-	if (space_is_property (space)) // and is unowned
+	if (space_is_property (space))
 	{
-		auto const property = space_to_property(space);
-		force_property_offer(playerIndex, property);
-		return;
+        auto const property = space_to_property(space);
+		auto const ownerOpt = get_property_owner_index(property);
+		if (! ownerOpt) {
+            force_property_offer(playerIndex, property);
+            return;
+		}
+		else if (ownerOpt != playerIndex) {
+            auto const rent = calculate_rent(property);
+			force_transfer_funds(playerIndex, *ownerOpt, rent);
+            return;
+		}
+		else {
+			// Owner pays no rent to stay
+			return;
+		}
 	}
 
 	switch (space) 
@@ -248,16 +304,16 @@ void GameState::force_position(int playerIndex, Space space) {
 }
 
 void GameState::force_property_offer(int playerIndex, Property property) {
-		std::cout << "Offering unowned property" << std::endl;
-		if (bank.deeds.count(property)) {
-			if (players[playerIndex].funds >= price_of_property(property)) {
-				force_property_offer_prompt(playerIndex, property);
-			}
-			else
-			{
-				force_property_auction(property);
-			}
-		}
+    std::cout << "Offering unowned property" << std::endl;
+    if (bank.deeds.count(property)) {
+        if (players[playerIndex].funds >= price_of_property(property)) {
+            force_property_offer_prompt(playerIndex, property);
+        }
+        else
+        {
+            force_property_auction(property);
+        }
+    }
 }
 
 void GameState::force_property_offer_prompt(int playerIndex, Property property) {
@@ -420,11 +476,4 @@ std::map<DeckType, Deck> GameState::init_decks(GameSetup const& setup) {
 		{ DeckType::Chance, init_deck(setup, DeckType::Chance) },
 		{ DeckType::CommunityChest, init_deck(setup, DeckType::CommunityChest) },
 	};
-}
-
-std::pair<int, int> GameState::random_dice_roll() {
-	static const std::uniform_int_distribution<int> rollDie(0, 6);
-	auto const roll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
-	std::cout << "\t[" << roll.first << "] [" << roll.second << "]" << "\n";
-	return roll;
 }
