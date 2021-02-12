@@ -57,6 +57,7 @@ namespace monopoly
 		std::optional<int> get_property_owner_index(Property property) const;
 		int get_properties_owned_in_group(int playerIndex, PropertyGroup group) const;
 		TurnPhase get_turn_phase() const;
+		std::map<Property, int> const &get_building_levels() const;
 
 		std::pair<int, int> random_dice_roll();
 
@@ -96,8 +97,11 @@ namespace monopoly
 		void force_luxury_tax(int playerIndex);
 
 		void force_give_deed(int playerIndex, Property property);
+		void force_give_deeds(int playerIndex, std::set<Property> properties);
 		void force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed);
 		void force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds);
+
+		void force_set_building_levels(std::map<Property, int> newBuildingLevels);
 
 		void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
 		void force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType);
@@ -125,6 +129,6 @@ namespace monopoly
 		int doublesStreak;
 
 		std::set<Property> mortgagedPropreties;
-		std::map<Property, int> buildingLevel;
+		std::map<Property, int> buildingLevels;
 	};
 }

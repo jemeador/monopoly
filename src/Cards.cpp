@@ -10,6 +10,23 @@ using namespace monopoly;
 #include <iostream>
 #include <ranges>
 
+namespace {
+	int calculate_building_repair_cost(GameState const& state, int playerIndex, int pricePerHouse, int pricePerHotel) {
+		int cost = 0;
+		for (auto propertyBuildingLevelPair : state.get_building_levels()) {
+			auto const& property = propertyBuildingLevelPair.first;
+			if (state.get_property_owner_index(property) == playerIndex) {
+				auto const buildingLevel = propertyBuildingLevelPair.second;
+				if (buildingLevel <= 4)
+					cost += buildingLevel * pricePerHouse;
+				else
+					cost += pricePerHotel;
+			}
+		}
+		return cost;
+	}
+}
+
 CardData const& monopoly::card_data(Card card) {
 	static std::unordered_map<Card, CardData> const card_data = []() {
 		std::unordered_map<Card, CardData> ret;
@@ -102,7 +119,7 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 			}
 		};
 		ret[Card::Chance_Repairs] = [](GameState& state, int playerIndex) {
-			/// todo
+			state.force_subtract_funds (playerIndex, calculate_building_repair_cost(state, playerIndex, 25, 100));
 		};
 		ret[Card::CommunityChest_AdvanceToGo] = [](GameState& state, int playerIndex) {
 			state.force_advance_to(playerIndex, Space::Go);
@@ -152,7 +169,7 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 			state.force_subtract_funds(playerIndex, 50);
 		};
 		ret[Card::CommunityChest_Repairs] = [](GameState& state, int playerIndex) {
-			/// todo
+			state.force_subtract_funds (playerIndex, calculate_building_repair_cost(state, playerIndex, 40, 115));
 		};
 		return ret;
 	} ();

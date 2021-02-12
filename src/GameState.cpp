@@ -51,7 +51,7 @@ int GameState::get_net_worth(int playerIndex) const {
 	values.clear();
 	// Add building values
 	std::transform(begin(p.deeds), end(p.deeds), std::back_inserter(values),
-		[this](Property p) -> int { return buildingLevel.at (p) * price_per_house_on_property (p); });
+		[this](Property p) -> int { return buildingLevels.at (p) * price_per_house_on_property (p); });
 	netWorth = std::accumulate(begin(values), end(values), netWorth);
 	return netWorth;
 }
@@ -73,6 +73,10 @@ TurnPhase GameState::get_turn_phase() const {
 	return phase;
 }
 
+std::map<Property, int> const& GameState::get_building_levels() const {
+	return buildingLevels;
+}
+
 void GameState::force_turn_start(int playerIndex) {
 	phase = TurnPhase::WaitingForRoll;
 	activePlayerIndex = playerIndex;
@@ -92,17 +96,23 @@ void GameState::force_turn_end() {
 
 void GameState::force_funds(int playerIndex, int funds) {
 	players[playerIndex].funds = funds;
+	std::cout << player_name (playerIndex) << " has $" << funds << std::endl;
 }
 
 void GameState::force_add_funds(int playerIndex, int funds) {
 	players[playerIndex].funds += funds;
+	std::cout << player_name (playerIndex) << " collects $" << funds << std::endl;
 }
 
 void GameState::force_subtract_funds(int playerIndex, int funds) {
 	players[playerIndex].funds -= funds;
+	std::cout << player_name (playerIndex) << " pays $" << funds << std::endl;
 }
 
 void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds) {
+	if (fromPlayerIndex == toPlayerIndex)
+		return;
+
 	players[fromPlayerIndex].funds -= funds;
 	players[toPlayerIndex].funds += funds;
 
@@ -114,6 +124,8 @@ void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int
 
 void GameState::force_go_to_jail(int playerIndex) {
 	force_position(playerIndex, Space::Jail);
+	if (players[playerIndex].turnsRemainingInJail != MaxJailTurns)
+		std::cout << player_name(playerIndex) << " went to jail!" << std::endl;
 	players[playerIndex].turnsRemainingInJail = MaxJailTurns;
 	force_turn_end();
 }
@@ -198,6 +210,7 @@ void GameState::force_advance_to_without_landing(int playerIndex, Space space) {
 
 void GameState::force_land(int playerIndex, Space space) {
 	activePlayerIndex = playerIndex;
+	force_leave_jail(playerIndex);
 	force_position(playerIndex, space);
 	if (space_is_property (space)) // and is unowned
 	{
@@ -304,6 +317,11 @@ void GameState::force_give_deed(int playerIndex, Property property) {
 	force_transfer_deed(bank.deeds, players[playerIndex].deeds, property);
 }
 
+void GameState::force_give_deeds(int playerIndex, std::set<Property> properties) {
+	for (auto property : properties)
+		force_give_deed(playerIndex, property);
+}
+
 void GameState::force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed) {
 	auto const countErased = from.erase(deed);
 	assert(countErased == 1);
@@ -314,6 +332,11 @@ void GameState::force_transfer_deed(std::set<Property>& from, std::set<Property>
 void GameState::force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds) {
 	for (auto deed : deeds)
 		force_transfer_deed(from, to, deed);
+}
+
+void GameState::force_set_building_levels(std::map<Property, int> newBuildingLevels) {
+	newBuildingLevels.insert(buildingLevels.begin(), buildingLevels.end());
+	swap(newBuildingLevels, buildingLevels);
 }
 
 void GameState::force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
@@ -336,9 +359,14 @@ void GameState::force_use_get_out_of_jail_free_card(int playerIndex, DeckType pr
 	assert(player.turnsRemainingInJail > 0);
 	assert(player.getOutOfJailFreeCards.size () > 0);
 	// If player has preferred card, we will spend that one; othewise, just use whatever they have (which must be 1 card)
+	DeckType usedDeckType = preferredDeckType;
 	if (!player.getOutOfJailFreeCards.erase(preferredDeckType)) {
-		player.getOutOfJailFreeCards.erase(std::begin(player.getOutOfJailFreeCards));
+		auto const onlyCardIt = player.getOutOfJailFreeCards.begin();
+		usedDeckType = *onlyCardIt;
+		player.getOutOfJailFreeCards.erase(onlyCardIt);
 	}
+	std::cout << player_name(playerIndex) << " used a " << to_string (usedDeckType) << " Get Out of Jail Free card" << std::endl;
+	decks[usedDeckType].add_card(get_out_of_jail_free_card(usedDeckType));
 	force_leave_jail(playerIndex);
 }
 

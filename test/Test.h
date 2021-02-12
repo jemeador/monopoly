@@ -38,6 +38,12 @@ namespace monopoly
 		inline void give_deed(int playerIndex, Property property) {
 			change_state(std::bind(&GameState::force_give_deed, std::placeholders::_1, playerIndex, property));
 		}
+		inline void give_deeds(int playerIndex, std::set<Property> properties) {
+			change_state(std::bind(&GameState::force_give_deeds, std::placeholders::_1, playerIndex, properties));
+		}
+		inline void set_buildings(std::map<Property, int> buildingLevels) {
+			change_state(std::bind(&GameState::force_set_building_levels, std::placeholders::_1, buildingLevels));
+		}
 		inline void give_get_out_of_jail_free_card(int playerIndex, DeckType deckType = DeckType::Chance) {
 			change_state(std::bind(&GameState::force_give_get_out_of_jail_free_card, std::placeholders::_1, playerIndex, deckType));
 		}
@@ -89,6 +95,15 @@ namespace monopoly
 			auto d = game.get_state ().get_player(playerIndex).deeds;
 			REQUIRE(std::none_of(d.begin(), d.end(),
 				[property](Property p) { return p == property; }));
+		}
+
+		inline void require_has_get_out_of_jail_free(int playerIndex, DeckType deckType) {
+			auto c = game.get_state ().get_player(playerIndex).getOutOfJailFreeCards;
+			REQUIRE(c.count(deckType) ==  1);
+		}
+		inline void require_does_not_have_get_out_of_jail_free(int playerIndex, DeckType deckType) {
+			auto c = game.get_state ().get_player(playerIndex).getOutOfJailFreeCards;
+			REQUIRE(c.count(deckType) ==  0);
 		}
 
 		inline void require_jailed(int playerIndex, bool jailed) {
