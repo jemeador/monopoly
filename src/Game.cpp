@@ -199,7 +199,8 @@ void Game::process_offer_trade_input(int playerIndex, OfferTradeInput const& inp
 
 void Game::start() {
 	std::cout << "Starting a new game" << std::endl;
-	gameEndPromise.swap(std::promise<void>{});
+	std::promise<void> newPromise;
+	swap(gameEndPromise, newPromise);
 	gameEndFuture = gameEndPromise.get_future();
 	gameThread = std::thread(&Game::process, this);
 
