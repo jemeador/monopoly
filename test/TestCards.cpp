@@ -136,11 +136,12 @@ SCENARIO("A player draws Advance to the Nearest Utility", "[cards]") {
 				test.land_on_space(Player::p1, Space::Chance_2);
 
 				THEN("player 1 advances to Water Works and pays double the value of a random roll") {
-					auto const seededRollTimes10 = 100; // This may need to change if we mess with the seed
-					// todo Expose more data or allow loaded dice rolls outside of movement to make this more robust
+                    auto const diceRoll = test.game.get_state().get_last_dice_roll();
+					auto const sum = diceRoll.first + diceRoll.second;
+					auto const rent = sum * 10;
 					test.require_position(Player::p1, Space::Utility_2);
-					test.require_funds(Player::p1, startingFunds - seededRollTimes10);
-					test.require_funds(Player::p2, startingFunds + seededRollTimes10);
+					test.require_funds(Player::p1, startingFunds - rent);
+					test.require_funds(Player::p2, startingFunds + rent);
 				}
 			}
 		}

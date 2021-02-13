@@ -112,9 +112,9 @@ int GameState::calculate_rent(Property property) const {
 
 std::pair<int, int> GameState::random_dice_roll() {
 	std::uniform_int_distribution<int> rollDie(0, 6);
-	auto const roll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
-	std::cout << "\t[" << roll.first << "] [" << roll.second << "]" << "\n";
-	return roll;
+	lastDiceRoll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
+	std::cout << "\t[" << lastDiceRoll.first << "] [" << lastDiceRoll.second << "]" << "\n";
+	return lastDiceRoll;
 }
 
 std::pair<int, int> GameState::get_last_dice_roll() const {
