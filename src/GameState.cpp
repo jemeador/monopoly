@@ -23,6 +23,10 @@ GameState::GameState(GameSetup setup)
 	decks[DeckType::Chance].shuffle(rng);
 }
 
+int GameState::get_turn() const {
+	return turn;
+}
+
 Bank GameState::get_bank() const {
 	return bank;
 }
@@ -110,8 +114,12 @@ int GameState::calculate_rent(Property property) const {
 	}
 }
 
+bool GameState::waiting_on_prompt() const {
+	return (phase == TurnPhase::WaitingForBuyPropertyInput);
+}
+
 std::pair<int, int> GameState::random_dice_roll() {
-	std::uniform_int_distribution<int> rollDie(0, 6);
+	std::uniform_int_distribution<int> rollDie(1, 6);
 	lastDiceRoll = std::pair<int, int> { rollDie(rng), rollDie(rng) };
 	std::cout << "\t[" << lastDiceRoll.first << "] [" << lastDiceRoll.second << "]" << "\n";
 	return lastDiceRoll;
@@ -123,8 +131,8 @@ std::pair<int, int> GameState::get_last_dice_roll() const {
 
 
 void GameState::force_turn_start(int playerIndex) {
-	phase = TurnPhase::WaitingForRoll;
-	activePlayerIndex = playerIndex;
+	++turn;
+	force_roll_prompt(playerIndex);
 }
 
 void GameState::force_turn_continue() {
@@ -180,7 +188,7 @@ void GameState::force_leave_jail(int playerIndex) {
 }
 
 void GameState::force_random_roll(int playerIndex) {
-	force_roll(playerIndex, lastDiceRoll);
+	force_roll(playerIndex, random_dice_roll ());
 }
 
 void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
@@ -269,6 +277,7 @@ void GameState::force_land(int playerIndex, Space space) {
 		else if (ownerOpt != playerIndex) {
             auto const rent = calculate_rent(property);
 			force_transfer_funds(playerIndex, *ownerOpt, rent);
+            force_turn_continue();
             return;
 		}
 		else {
@@ -299,6 +308,11 @@ void GameState::force_land(int playerIndex, Space space) {
 		force_go_to_jail(playerIndex);
 		break;
 	}
+
+	// Some effects can cause a prompt to open
+	if (! waiting_on_prompt()) {
+		force_turn_continue();
+	}
 }
 
 void GameState::force_position(int playerIndex, Space space) {
@@ -316,12 +330,6 @@ void GameState::force_property_offer(int playerIndex, Property property) {
             force_property_auction(property);
         }
     }
-}
-
-void GameState::force_property_offer_prompt(int playerIndex, Property property) {
-	activePlayerIndex = playerIndex;
-	phase = TurnPhase::WaitingForBuyPropertyInput;
-	std::cout << player_name (playerIndex) << ": Do you want to buy " << to_string(property) << "?" << std::endl;
 }
 
 void GameState::force_stack_deck(DeckType deckType, DeckContainer const& cards) {
@@ -428,16 +436,6 @@ void GameState::force_use_get_out_of_jail_free_card(int playerIndex, DeckType pr
 	force_leave_jail(playerIndex);
 }
 
-void GameState::force_liquidate_prompt(int debtorPlayerIndex) {
-	/// \todo give debtor a chance to trade or liquidate assets 
-	force_bankrupt(debtorPlayerIndex);
-}
-
-void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex) {
-	/// \todo give debtor a chance to trade or liquidate assets 
-	force_bankrupt(debtorPlayerIndex, creditorPlayerIndex);
-}
-
 void GameState::force_bankrupt(int debtorPlayerIndex) {
 	auto &debtor = players[debtorPlayerIndex];
 	std::set<Property> deedsToAuction;
@@ -458,6 +456,27 @@ void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
 	creditor.getOutOfJailFreeCards.insert(begin(debtor.getOutOfJailFreeCards), end(debtor.getOutOfJailFreeCards));
 	// retire player
 }
+
+void GameState::force_roll_prompt(int playerIndex) {
+	activePlayerIndex = playerIndex;
+	phase = TurnPhase::WaitingForRoll;
+}
+
+void GameState::force_property_offer_prompt(int playerIndex, Property property) {
+	activePlayerIndex = playerIndex;
+	phase = TurnPhase::WaitingForBuyPropertyInput;
+}
+
+void GameState::force_liquidate_prompt(int debtorPlayerIndex) {
+	/// \todo give debtor a chance to trade or liquidate assets 
+	force_bankrupt(debtorPlayerIndex);
+}
+
+void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex) {
+	/// \todo give debtor a chance to trade or liquidate assets 
+	force_bankrupt(debtorPlayerIndex, creditorPlayerIndex);
+}
+
 
 Player GameState::init_player(GameSetup const &setup) {
 	Player p;

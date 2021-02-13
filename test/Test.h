@@ -60,6 +60,11 @@ namespace monopoly
 			change_state(std::bind(&GameState::force_land, std::placeholders::_1, playerIndex, space));
 		}
 
+		inline void roll() {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.roll_dice(pi);
+			game.wait_for_processing();
+		}
 		inline void roll(int a, int b) {
 			auto const pi = game.get_state().get_active_player_index();
 			interface.roll_loaded_dice(pi, {a, b});

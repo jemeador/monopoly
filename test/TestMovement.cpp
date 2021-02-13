@@ -76,7 +76,7 @@ SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") 
     }
 }
 
-SCENARIO("It's a player's turn and they are in jail", "[turn]") {
+SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, or paying bail", "[turn]") {
 	Test test;
 	auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
 
@@ -136,4 +136,18 @@ SCENARIO("It's a player's turn and they are in jail", "[turn]") {
 			}
 		}
     }
+}
+
+SCENARIO("Rolling random dice always yields a valid dice roll", "[turn]") {
+	Test test;
+
+	for (auto i = 0; i < 10; ++i) {
+		test.set_active_player(Player::p1);
+		test.roll();
+		auto const dice = test.game.get_state ().get_last_dice_roll();
+		REQUIRE(1 <= dice.first);
+		REQUIRE(dice.first <= 6);
+		REQUIRE(1 <= dice.second);
+		REQUIRE(dice.second <= 6);
+	}
 }

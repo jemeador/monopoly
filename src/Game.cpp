@@ -49,21 +49,26 @@ std::unique_lock<std::mutex> Game::pause_processing() {
 }
 
 void Game::process() {
-	while (gameEndFuture.wait_for (33ms) == std::future_status::timeout) {
+	while (gameEndFuture.wait_for (33ms) == std::future_status::timeout) { // ~30Hz
 		{
 			std::lock_guard<std::mutex> lock(stateMutex);
-			auto playerInputQueue = interface->poll();
-			int playerIndex;
-			Input input;
-			while (!playerInputQueue.empty()) {
-				std:tie(playerIndex, input) = playerInputQueue.front();
-				process_input(playerIndex, input);
-				playerInputQueue.pop();
-			}
+			process_inputs();
+            interface->update(state);
 		}
 		waitCondition.notify_all();
 		currentCycle++;
 	}
+}
+
+void Game::process_inputs() {
+    auto playerInputQueue = interface->poll();
+    int playerIndex;
+    Input input;
+    while (!playerInputQueue.empty()) {
+        std:tie(playerIndex, input) = playerInputQueue.front();
+        process_input(playerIndex, input);
+        playerInputQueue.pop();
+    }
 }
 
 void Game::process_input(int playerIndex, Input const &input) {
@@ -97,6 +102,9 @@ void Game::process_input(int playerIndex, Input const &input) {
 	else if (auto inputPtr = std::get_if<OfferTradeInput> (&input)) {
 		process_offer_trade_input (playerIndex, *inputPtr);
 	}
+	else if (auto inputPtr = std::get_if<CloseInput> (&input)) {
+		process_close_input (playerIndex, *inputPtr);
+	}
 }
 
 void Game::process_roll_input(int playerIndex, RollInput const& input) {
@@ -109,7 +117,7 @@ void Game::process_roll_input(int playerIndex, RollInput const& input) {
 		return;
 	}
 
-	if (setup.loadedDiceEnabled) {
+	if (setup.loadedDiceEnabled && input.loadedDiceValues != std::pair<int, int>{0, 0}) {
 		auto diceValues = input.loadedDiceValues;
 		clamp_die_value(diceValues.first);
 		clamp_die_value(diceValues.second);
@@ -195,6 +203,16 @@ void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
 void Game::process_bid_input(int playerIndex, BidInput const& input) {
 }
 void Game::process_offer_trade_input(int playerIndex, OfferTradeInput const& input) {
+}
+
+void Game::process_close_input(int playerIndex, CloseInput const& input) {
+	if (state.get_turn_phase() != TurnPhase::WaitingForTurnEnd) {
+		return;
+	}
+	if (state.get_active_player_index () != playerIndex) {
+		return;
+	}
+	state.force_turn_start(state.get_next_player_index ());
 }
 
 void Game::start() {

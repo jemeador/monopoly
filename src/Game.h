@@ -35,6 +35,9 @@ namespace monopoly
 
 	private:
 		void process();
+		void process_inputs();
+		void send_prompts();
+
 		void process_input(int playerIndex, Input const &input);
 		void process_roll_input(int playerIndex, RollInput const &input);
 		void process_buy_property_input(int playerIndex, BuyPropertyInput const &input);
@@ -46,6 +49,7 @@ namespace monopoly
 		void process_pay_bail_input(int playerIndex, PayBailInput const &input);
 		void process_bid_input(int playerIndex, BidInput const &input);
 		void process_offer_trade_input (int playerIndex, OfferTradeInput const &input);
+		void process_close_input(int playerIndex, CloseInput const& input);
 
 		void start();
 		void stop();

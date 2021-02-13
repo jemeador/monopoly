@@ -2,18 +2,12 @@
 
 #include "IInterface.h"
 
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <future>
-#include <mutex>
 #include <queue>
-#include <stdexcept>
-#include <thread>
+#include <mutex>
 
 namespace monopoly
 {
-    class TestInterface :
+    class TestInterface final :
         public IInterface
     {
     public:
@@ -21,6 +15,10 @@ namespace monopoly
             : IInterface()
             , inputMutex()
             , inputBuffer() {
+        }
+
+        void roll_dice(int playerIndex) {
+            queue_roll_input(playerIndex);
         }
 
         void roll_loaded_dice(int playerIndex, std::pair<int, int> diceValues) {
@@ -61,10 +59,14 @@ namespace monopoly
             return ret;
         }
 
-		void prompt_buy_at_list_price(int playerIndex) final {
+		void update(GameState state) final {
         }
 
     private:
+        void queue_roll_input(int playerIndex) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {}});
+        }
         void queue_roll_input(int playerIndex, std::pair<int, int> diceValues) {
             std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput { diceValues }});

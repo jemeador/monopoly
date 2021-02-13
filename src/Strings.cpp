@@ -1,12 +1,31 @@
 #include "Strings.h"
 using namespace monopoly;
 
+#include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
 #include <fstream>
 #include <iostream>
 
 namespace {
+
+    json const& string_data() {
+        static json const strings = []() {
+            try {
+                std::string const path(DATA_INSTALL_PREFIX);
+                std::ifstream i(path + "strings.json");
+                json j;
+                i >> j;
+                return j;
+            }
+            catch (json::exception& e) {
+                std::cerr << e.what() << std::endl;
+                return json{};
+            }
+        } ();
+        return strings;
+    }
+
 	char const *lookup_key(Property property) {
 		switch (property) {
 		case Property::Brown_1: return "Brown_1";
@@ -40,7 +59,20 @@ namespace {
 		}
 		return "";
 	}
-
+	char const *lookup_key (PropertyGroup group) {
+		switch (group) {
+		case PropertyGroup::Brown: return "Brown";
+		case PropertyGroup::LightBlue: return "LightBluu";
+		case PropertyGroup::Magenta: return "Magenta";
+		case PropertyGroup::Orange: return "Orange";
+		case PropertyGroup::Red: return "Red";
+		case PropertyGroup::Yellow: return "Yellow";
+		case PropertyGroup::Green: return "Green";
+		case PropertyGroup::Blue: return "Blue";
+		case PropertyGroup::Utility: return "Utility";
+		case PropertyGroup::Railroad: return "Railroad";
+		}
+	}
 	char const *lookup_key(DeckType deckType) {
 		switch (deckType) {
 		case DeckType::Chance: return "Chance";
@@ -87,25 +119,12 @@ namespace {
 
 }
 
-json const& monopoly::string_data() {
-	static json const strings = []() {
-		try {
-			std::string const path(DATA_INSTALL_PREFIX);
-			std::ifstream i(path + "strings.json");
-			json j;
-			i >> j;
-			return j;
-		}
-		catch (json::exception& e) {
-			std::cerr << e.what() << std::endl;
-			return json{};
-		}
-	} ();
-	return strings;
-}
-
 std::string monopoly::to_string(Property property) {
 	return label(lookup_key(property));
+}
+
+std::string monopoly::to_string(PropertyGroup group) {
+	return label(lookup_key(group));
 }
 
 std::string monopoly::to_string(DeckType deckType) {

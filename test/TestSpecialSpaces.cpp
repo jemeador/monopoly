@@ -69,6 +69,26 @@ SCENARIO("When a player lands on the \"Go to Jail\" space, they go directly to j
 				test.require_position(Player::p1, Space::Jail);
 				test.require_jailed(Player::p1, true);
 				test.require_funds(Player::p1, startingFunds);
+				test.require_phase(TurnPhase::WaitingForTurnEnd);
+			}
+		}
+	}
+}
+
+SCENARIO("When a player lands on the \"Free Parking\" space, nothing happens", "[special]") {
+	Test test;
+
+	GIVEN("Player 1 is on Utility 1") {
+		int const startingFunds = 1500;
+		test.move_player(Player::p1, Space::Utility_1);
+
+		WHEN("player 1 rolls (5,3) and lands on Free Parking") {
+			test.roll(5, 3);
+
+			THEN("player 1 gains no money and does not move, their turn ends.") {
+				test.require_position(Player::p1, Space::FreeParking);
+				test.require_funds(Player::p1, startingFunds);
+				test.require_phase(TurnPhase::WaitingForTurnEnd);
 			}
 		}
 	}

@@ -28,59 +28,80 @@ namespace monopoly
 		Railroad,
 	};
 
-	// Calculate the proprety ID, used to populate enum
-	inline int constexpr PId(PropertyGroup group, int indexInGroup)
-	{
-		assert(indexInGroup < 4);
-		// Max bits to encode index is 2
-		return (static_cast<int> (group) << 2) + indexInGroup;
-	}
-
 	enum class Property
 	{
-		Brown_1 = PId(PropertyGroup::Brown, 0),
-		Brown_2 = PId(PropertyGroup::Brown, 1),
-
-		LightBlue_1 = PId(PropertyGroup::LightBlue, 0),
-		LightBlue_2 = PId(PropertyGroup::LightBlue, 1),
-		LightBlue_3 = PId(PropertyGroup::LightBlue, 2),
-
-		Magenta_1 = PId(PropertyGroup::Magenta, 0),
-		Magenta_2 = PId(PropertyGroup::Magenta, 1),
-		Magenta_3 = PId(PropertyGroup::Magenta, 2),
-
-		Orange_1 = PId(PropertyGroup::Orange, 0),
-		Orange_2 = PId(PropertyGroup::Orange, 1),
-		Orange_3 = PId(PropertyGroup::Orange, 2),
-
-		Red_1 = PId(PropertyGroup::Red, 0),
-		Red_2 = PId(PropertyGroup::Red, 1),
-		Red_3 = PId(PropertyGroup::Red, 2),
-
-		Yellow_1 = PId(PropertyGroup::Yellow, 0),
-		Yellow_2 = PId(PropertyGroup::Yellow, 1),
-		Yellow_3 = PId(PropertyGroup::Yellow, 2),
-
-		Green_1 = PId(PropertyGroup::Green, 0),
-		Green_2 = PId(PropertyGroup::Green, 1),
-		Green_3 = PId(PropertyGroup::Green, 2),
-
-		Blue_1 = PId(PropertyGroup::Blue, 0),
-		Blue_2 = PId(PropertyGroup::Blue, 1),
-
-		Utility_1 = PId(PropertyGroup::Utility, 0),
-		Utility_2 = PId(PropertyGroup::Utility, 1),
-
-		Railroad_1 = PId(PropertyGroup::Railroad, 0),
-		Railroad_2 = PId(PropertyGroup::Railroad, 1),
-		Railroad_3 = PId(PropertyGroup::Railroad, 2),
-		Railroad_4 = PId(PropertyGroup::Railroad, 3),
-
+		Brown_1 = 0,
+		Brown_2,
+		LightBlue_1,
+		LightBlue_2,
+		LightBlue_3,
+		Magenta_1,
+		Magenta_2,
+		Magenta_3,
+		Orange_1,
+		Orange_2,
+		Orange_3,
+		Red_1,
+		Red_2,
+		Red_3,
+		Yellow_1,
+		Yellow_2,
+		Yellow_3,
+		Green_1,
+		Green_2,
+		Green_3,
+		Blue_1,
+		Blue_2,
+		Utility_1,
+		Utility_2,
+		Railroad_1,
+		Railroad_2,
+		Railroad_3,
+		Railroad_4,
 		Invalid = -1,
 	};
 
 	inline PropertyGroup property_group(Property p) {
-		return static_cast<PropertyGroup> ((static_cast<int> (p) >> 2));
+		switch (p) {
+		case Property::Brown_1:
+		case Property::Brown_2:
+			return PropertyGroup::Brown;
+        case Property::LightBlue_1:
+		case Property::LightBlue_2:
+        case Property::LightBlue_3:
+			return PropertyGroup::LightBlue;
+        case Property::Magenta_1:
+        case Property::Magenta_2:
+        case Property::Magenta_3:
+            return PropertyGroup::Magenta;
+        case Property::Orange_1:
+        case Property::Orange_2:
+        case Property::Orange_3:
+            return PropertyGroup::Orange;
+        case Property::Red_1:
+        case Property::Red_2:
+        case Property::Red_3:
+            return PropertyGroup::Red;
+        case Property::Yellow_1:
+        case Property::Yellow_2:
+        case Property::Yellow_3:
+            return PropertyGroup::Yellow;
+        case Property::Green_1:
+        case Property::Green_2:
+        case Property::Green_3:
+            return PropertyGroup::Green;
+        case Property::Blue_1:
+        case Property::Blue_2:
+            return PropertyGroup::Blue;
+        case Property::Utility_1:
+        case Property::Utility_2:
+            return PropertyGroup::Utility;
+        case Property::Railroad_1:
+        case Property::Railroad_2:
+        case Property::Railroad_3:
+        case Property::Railroad_4:
+            return PropertyGroup::Railroad;
+		}
 	}
 
 	inline std::set<Property> properties_in_group(PropertyGroup group) {
@@ -262,6 +283,41 @@ namespace monopoly
 		}
 		return Property::Invalid;
 	}
+
+	inline Space property_to_space (Property p) {
+		switch (p) {
+		case Property::Brown_1: return Space::Brown_1;
+		case Property::Brown_2: return Space::Brown_2;
+		case Property::LightBlue_1: return Space::LightBlue_1;
+		case Property::LightBlue_2: return Space::LightBlue_2;
+		case Property::LightBlue_3: return Space::LightBlue_3;
+		case Property::Magenta_1: return Space::Magenta_1;
+		case Property::Magenta_2: return Space::Magenta_2;
+		case Property::Magenta_3: return Space::Magenta_3;
+		case Property::Orange_1: return Space::Orange_1;
+		case Property::Orange_2: return Space::Orange_2;
+		case Property::Orange_3: return Space::Orange_3;
+		case Property::Red_1: return Space::Red_1;
+		case Property::Red_2: return Space::Red_2;
+		case Property::Red_3: return Space::Red_3;
+		case Property::Yellow_1: return Space::Yellow_1;
+		case Property::Yellow_2: return Space::Yellow_2;
+		case Property::Yellow_3: return Space::Yellow_3;
+		case Property::Green_1: return Space::Green_1;
+		case Property::Green_2: return Space::Green_2;
+		case Property::Green_3: return Space::Green_3;
+		case Property::Blue_1: return Space::Blue_1;
+		case Property::Blue_2: return Space::Blue_2;
+		case Property::Utility_1: return Space::Utility_1;
+		case Property::Utility_2: return Space::Utility_2;
+		case Property::Railroad_1: return Space::Railroad_1;
+		case Property::Railroad_2: return Space::Railroad_2;
+		case Property::Railroad_3: return Space::Railroad_3;
+		case Property::Railroad_4: return Space::Railroad_4;
+		}
+		return Space::Go;
+	}
+
 
 	inline bool space_is_property(Space s) {
 		return space_to_property (s) != Property::Invalid;
