@@ -8,7 +8,6 @@ using namespace monopoly;
 
 #include <algorithm>
 #include <iostream>
-#include <ranges>
 
 namespace {
 	int calculate_building_repair_cost(GameState const& state, int playerIndex, int pricePerHouse, int pricePerHotel) {
