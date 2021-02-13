@@ -14,6 +14,10 @@ add_library (MonopolyEngine ${SOURCES} "GameState.h" "GameState.cpp" "Input.h"  
 include_directories (MonopolyEngine "lib/json/include")
 target_link_libraries (MonopolyEngine PRIVATE nlohmann_json::nlohmann_json)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(MonopolyEngine PRIVATE Threads::Threads)
+
 # Add source to this project's executable.
 add_executable (Monopoly app/main.cpp "GameState.h" "GameState.cpp" "Input.h"  "Cards.cpp" "Strings.h" "Strings.cpp")
 include_directories (Monopoly ".")
