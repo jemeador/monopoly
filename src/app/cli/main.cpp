@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 	auto interface = CommandLineInterface ();
 	auto game = Game(&interface);
 
-	while (1) {
+	while (! game.game_over ()) {
 	}
 }
 

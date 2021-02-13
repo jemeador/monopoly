@@ -35,6 +35,10 @@ int GameState::get_player_count() const {
 	return players.size();
 }
 
+int GameState::get_players_remaining_count() const {
+	return std::count_if(players.begin(), players.end(), [](Player const &player) { return ! player.eliminated; });
+}
+
 Player GameState::get_player(int playerIndex) const {
 	return players[playerIndex];
 }
@@ -44,7 +48,11 @@ int GameState::get_active_player_index() const {
 }
 
 int GameState::get_next_player_index() const {
-	return (activePlayerIndex + 1) % static_cast<int> (players.size ());
+	int index = activePlayerIndex;
+    do {
+		index = (index + 1) % static_cast<int> (players.size());
+	} while (players[index].eliminated && index != activePlayerIndex);
+    return index;
 }
 
 int GameState::get_net_worth(int playerIndex) const {
@@ -53,12 +61,12 @@ int GameState::get_net_worth(int playerIndex) const {
 	int netWorth = p.funds;
 	// Add property values
 	std::transform(begin(p.deeds), end(p.deeds), std::back_inserter(values),
-		[this](Property p) -> int { return mortgagedPropreties.count(p) ? mortgage_value_of_property(p) : price_of_property(p); });
+		[this](Property p) -> int { return mortgagedProperties.count(p) ? mortgage_value_of_property(p) : price_of_property(p); });
 	netWorth = std::accumulate(begin(values), end(values), netWorth);
 	values.clear();
 	// Add building values
 	std::transform(begin(p.deeds), end(p.deeds), std::back_inserter(values),
-		[this](Property p) -> int { return buildingLevels.at (p) * price_per_house_on_property (p); });
+		[this](Property p) -> int { return get_building_level(p) * price_per_house_on_property (p); });
 	netWorth = std::accumulate(begin(values), end(values), netWorth);
 	return netWorth;
 }
@@ -70,14 +78,30 @@ std::optional<int> GameState::get_property_owner_index(Property property) const 
 	}
 	return {};
  }
+ 
+int GameState::get_properties_owned_in_group(Property property) const {
+	auto const ownerOpt = get_property_owner_index(property);
+    auto const ownedGroupCount = ownerOpt
+        ? get_properties_owned_in_group_by_player(*ownerOpt, property_group (property))
+        : 0;
+	return ownedGroupCount;
+}
 
-int GameState::get_properties_owned_in_group(int playerIndex, PropertyGroup group) const {
+int GameState::get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const {
 	auto const &deeds = players[playerIndex].deeds;
 	return std::count_if(deeds.begin(), deeds.end(), [group](Property property) { return property_is_in_group(property, group); });
 }
 
 TurnPhase GameState::get_turn_phase() const {
 	return phase;
+}
+
+int GameState::get_building_level(Property property) const {
+    auto const buildingLevelIt = buildingLevels.find(property);
+	if (buildingLevelIt != buildingLevels.end ()) {
+		return buildingLevelIt->second;
+	}
+	return 0;
 }
 
 std::map<Property, int> const& GameState::get_building_levels() const {
@@ -92,7 +116,7 @@ int GameState::calculate_rent(Property property) const {
 	auto const ownerIndex = *ownerOpt;
 	auto const &ownerDeeds = players[ownerIndex].deeds;
 	auto const group = property_group(property);
-    auto const ownedDeedsInGroup = get_properties_owned_in_group(ownerIndex, group);
+    auto const ownedDeedsInGroup = get_properties_owned_in_group_by_player(ownerIndex, group);
 
 	if (group == PropertyGroup::Railroad) {
 		return rent_price_of_railroad(ownedDeedsInGroup);
@@ -160,6 +184,9 @@ void GameState::force_add_funds(int playerIndex, int funds) {
 void GameState::force_subtract_funds(int playerIndex, int funds) {
 	players[playerIndex].funds -= funds;
 	std::cout << player_name (playerIndex) << " pays $" << funds << std::endl;
+
+	if (players[playerIndex].funds < 0)
+		force_liquidate_prompt(playerIndex);
 }
 
 void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds) {
@@ -220,7 +247,7 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 			}
 			else {
 				std::cout << player_name(playerIndex) << " must pay fine" << std::endl;
-				force_subtract_funds(playerIndex, BailCost);
+				force_pay_bail(playerIndex);
 			}
 		}
 	}
@@ -272,41 +299,38 @@ void GameState::force_land(int playerIndex, Space space) {
 		auto const ownerOpt = get_property_owner_index(property);
 		if (! ownerOpt) {
             force_property_offer(playerIndex, property);
-            return;
 		}
 		else if (ownerOpt != playerIndex) {
             auto const rent = calculate_rent(property);
 			force_transfer_funds(playerIndex, *ownerOpt, rent);
-            force_turn_continue();
-            return;
 		}
 		else {
 			// Owner pays no rent to stay
-			return;
 		}
 	}
-
-	switch (space) 
-	{
-	case Space::IncomeTax:
-		force_income_tax(playerIndex);
-		break;
-	case Space::LuxuryTax:
-		force_luxury_tax(playerIndex);
-		break;
-	case Space::CommunityChest_1:
-	case Space::CommunityChest_2:
-	case Space::CommunityChest_3:
-		force_draw_community_chest_card(playerIndex);
-		break;
-	case Space::Chance_1:
-	case Space::Chance_2:
-	case Space::Chance_3:
-		force_draw_chance_card(playerIndex);
-		break;
-	case Space::GoToJail:
-		force_go_to_jail(playerIndex);
-		break;
+	else {
+		switch (space)
+		{
+		case Space::IncomeTax:
+			force_income_tax(playerIndex);
+			break;
+		case Space::LuxuryTax:
+			force_luxury_tax(playerIndex);
+			break;
+		case Space::CommunityChest_1:
+		case Space::CommunityChest_2:
+		case Space::CommunityChest_3:
+			force_draw_community_chest_card(playerIndex);
+			break;
+		case Space::Chance_1:
+		case Space::Chance_2:
+		case Space::Chance_3:
+			force_draw_chance_card(playerIndex);
+			break;
+		case Space::GoToJail:
+			force_go_to_jail(playerIndex);
+			break;
+		}
 	}
 
 	// Some effects can cause a prompt to open
@@ -414,36 +438,59 @@ void GameState::force_give_get_out_of_jail_free_card(int playerIndex, DeckType d
 void GameState::force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType) {
 	auto& fromCards = players[fromPlayerIndex].getOutOfJailFreeCards;
 	auto& toCards = players[toPlayerIndex].getOutOfJailFreeCards;
-	auto const countErased = fromCards.erase(deckType);
-	assert(countErased == 1);
-	auto const insertRet = toCards.insert(deckType);
-	assert(insertRet.second);
+	if (fromCards.erase(deckType))
+        toCards.insert(deckType);
+}
+
+void GameState::force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, int toPlayerIndex) {
+	for (auto deckType : { DeckType::CommunityChest, DeckType::Chance }) {
+		force_transfer_get_out_of_jail_free_card(fromPlayerIndex, toPlayerIndex, deckType);
+	}
 }
 
 void GameState::force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType) {
 	auto& player = players[playerIndex];
-	assert(player.turnsRemainingInJail > 0);
-	assert(player.getOutOfJailFreeCards.size () > 0);
-	// If player has preferred card, we will spend that one; othewise, just use whatever they have (which must be 1 card)
-	DeckType usedDeckType = preferredDeckType;
-	if (!player.getOutOfJailFreeCards.erase(preferredDeckType)) {
-		auto const onlyCardIt = player.getOutOfJailFreeCards.begin();
-		usedDeckType = *onlyCardIt;
-		player.getOutOfJailFreeCards.erase(onlyCardIt);
-	}
+	if (player.turnsRemainingInJail == 0)
+		return;
+	if (player.getOutOfJailFreeCards.size() == 0)
+		return;
+	auto const usedDeckType = (player.getOutOfJailFreeCards.count(preferredDeckType))
+		? preferredDeckType
+		: *player.getOutOfJailFreeCards.begin();
+
 	std::cout << player_name(playerIndex) << " used a " << to_string (usedDeckType) << " Get Out of Jail Free card" << std::endl;
-	decks[usedDeckType].add_card(get_out_of_jail_free_card(usedDeckType));
+	force_return_get_out_of_jail_free_card(playerIndex, usedDeckType);
+	force_leave_jail(playerIndex);
+}
+
+void GameState::force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
+	auto& player = players[playerIndex];
+	player.getOutOfJailFreeCards.erase(deckType);
+	decks[deckType].add_card(get_out_of_jail_free_card(deckType));
+}
+
+void GameState::force_return_get_out_of_jail_free_cards(int playerIndex) {
+	for (auto deckType : { DeckType::CommunityChest, DeckType::Chance }) {
+        force_return_get_out_of_jail_free_card(playerIndex, deckType);
+	}
+}
+
+void GameState::force_pay_bail(int playerIndex) {
+    force_subtract_funds(playerIndex, BailCost);
 	force_leave_jail(playerIndex);
 }
 
 void GameState::force_bankrupt(int debtorPlayerIndex) {
 	auto &debtor = players[debtorPlayerIndex];
+	// sell buildings
+	// sell houses
 	std::set<Property> deedsToAuction;
 	swap(deedsToAuction, debtor.deeds);
-
 	for (auto property : debtor.deeds) {
 		force_property_auction(property);
 	}
+	force_return_get_out_of_jail_free_cards(debtorPlayerIndex);
+	debtor.eliminated = true;
 }
 
 void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
@@ -453,8 +500,8 @@ void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
 	// sell houses
 	force_transfer_funds(debtorPlayerIndex, creditorPlayerIndex, debtor.funds); // likely negative
 	force_transfer_deeds(debtor.deeds, creditor.deeds, debtor.deeds);
-	creditor.getOutOfJailFreeCards.insert(begin(debtor.getOutOfJailFreeCards), end(debtor.getOutOfJailFreeCards));
-	// retire player
+    force_transfer_get_out_of_jail_free_cards(debtorPlayerIndex, creditorPlayerIndex);
+	debtor.eliminated = true;
 }
 
 void GameState::force_roll_prompt(int playerIndex) {

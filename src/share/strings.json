@@ -43,7 +43,17 @@
         "Railroad_1": "Reading Railroad",
         "Railroad_2": "Pennsylvania Railroad",
         "Railroad_3": "B. & O. Railroad",
-        "Railroad_4": "Short Line"
+        "Railroad_4": "Short Line",
+		"Chance_1": "Chance",
+		"Chance_2": "Chance",
+		"Chance_3": "Chance",
+		"CommunityChest_1": "Community Chest",
+		"CommunityChest_2": "Community Chest",
+		"CommunityChest_3": "Community Chest",
+		"FreeParking": "Free Parking",
+		"GoToJail": "Go To Jail",
+		"IncomeTax": "Income Tax",
+		"LuxuryTax": "Luxury Tax"
     },
 
     "cards": {

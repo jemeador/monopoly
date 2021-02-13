@@ -64,7 +64,7 @@ void monopoly::apply_card_effect (GameState& state, int playerIndex, Card card) 
 			auto const property = space_to_property(dest);
 			if (auto const ownerOpt = state.get_property_owner_index(property)) {
 				auto const owner = *ownerOpt;
-				auto const ownedGroupCount = state.get_properties_owned_in_group(owner, PropertyGroup::Railroad);
+				auto const ownedGroupCount = state.get_properties_owned_in_group_by_player(owner, PropertyGroup::Railroad);
 				// Rent is doubled
 				state.force_transfer_funds(playerIndex, owner, 2 * rent_price_of_railroad(ownedGroupCount));
 			}

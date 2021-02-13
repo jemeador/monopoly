@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IInterface.h"
+#include "Strings.h"
 
 #include <mutex>
 #include <queue>
@@ -12,10 +13,11 @@ namespace monopoly
         public IInterface
     {
     public:
-        CommandLineInterface()
+        CommandLineInterface(bool automate = true)
             : IInterface()
             , inputMutex()
-            , inputBuffer() {
+            , inputBuffer()
+            , automate (automate) {
         }
 
         GameSetup get_setup() final {
@@ -56,10 +58,7 @@ namespace monopoly
         }
 
         bool prompt_change_required() const {
-            return state.get_turn() == 0 ||
-                state.get_turn() != prevState.get_turn() ||
-                state.get_turn_phase() != prevState.get_turn_phase() ||
-                state.get_active_player_index() != prevState.get_active_player_index();
+            return state != prevState;
         }
 
         void show_waiting_for_roll_prompt() {
@@ -99,8 +98,9 @@ namespace monopoly
         static const auto endTurnOption = 'e';
 
         static const auto quitOption = 'q';
+        static const auto showBoardOption = 's';
 
-        std::string const defaultOptions = "q";
+        std::string const defaultOptions = "sq";
 
         inline static const auto optionText = std::map<char, char const*> {
             {rollOption, "[r]oll" },
@@ -112,6 +112,7 @@ namespace monopoly
             {auctionOption, "[a]uction" },
             {endTurnOption, "[e]nd turn" },
             {quitOption, "[q]uit" },
+            {showBoardOption, "[s]how board" },
         };
 
         void show_prompted_player(int activePlayer) {
@@ -127,10 +128,18 @@ namespace monopoly
         void get_input(int playerIndex, std::string const &options) {
             bool validInput = false;
             while (! validInput) {
+                if (automate) {
+                    show_board();
+                }
                 show_prompted_player(playerIndex);
                 show_options (options);
                 char input;
-                std::cin >> input;
+                if (automate) {
+                    input = auto_input(options);
+                }
+                else {
+                    std::cin >> input;
+                }
                 if (options.find(input) != std::string::npos) {
                     send_input(playerIndex, input);
                     validInput = true;
@@ -138,6 +147,21 @@ namespace monopoly
                 else {
                     std::cin.ignore('\n');
                     std::cout << '\n';
+                }
+            }
+        }
+
+        char auto_input(std::string const& options) {
+            static auto const turnLimit = 1000;
+            if (state.get_turn() > turnLimit) {
+                std::cout << "Turn limit exceeded (" << turnLimit << ')\n';
+                return quitOption;
+            }
+            std::string const optionPriorities = "rbe";
+            for (auto o : optionPriorities) {
+                if (options.find(o) != std::string::npos) {
+                    std::cout << o << '\n';
+                    return o;
                 }
             }
         }
@@ -166,6 +190,10 @@ namespace monopoly
             case endTurnOption:
                 queue_end_turn_input(activePlayer);
                 break;
+            case showBoardOption:
+                show_board();
+                update_prompt();
+                break;
             case quitOption:
                 exit(0);
                 break;
@@ -193,10 +221,68 @@ namespace monopoly
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, CloseInput {}});
         }
 
+        void show_board() {
+
+            for (auto p = 1; p <= state.get_player_count(); ++p) {
+                std::cout << p;
+            }
+            std::cout << " Buildings O\n";
+
+            auto bl = state.get_building_levels();
+            for (auto s = 0; s < NumberOfSpaces; ++s) {
+
+                auto const space = static_cast<Space> (s);
+                for (auto p = 0; p < state.get_player_count(); ++p) {
+                    bool const playerIsAtSpace = (state.get_player(p).position == space);
+                    std::cout << (playerIsAtSpace ? "." : " ");
+                }
+                if (space_is_property(space)) {
+                    auto const property = space_to_property(space);
+                    if (property_is_in_group(property, PropertyGroup::Railroad)) {
+                        auto const ownedGroupCount = state.get_properties_owned_in_group(property);
+                        for (auto railroadSlot = 0; railroadSlot < 4; ++railroadSlot) {
+                            bool const slotFilled = ownedGroupCount > railroadSlot;
+                            std::cout << (slotFilled ? "R " : "_ ");
+                        }
+                        std::cout << "  ";
+                    }
+                    else if (property_is_in_group(property, PropertyGroup::Utility)) {
+                        auto const ownedGroupCount = state.get_properties_owned_in_group(property);
+                        for (auto utilitySlot = 0; utilitySlot < 2; ++utilitySlot) {
+                            bool const slotFilled = ownedGroupCount > utilitySlot;
+                            std::cout << (slotFilled ? "U " : "_ ");
+                        }
+                        std::cout << "      ";
+                    }
+                    else {
+                        bool const buildingLevel = bl[space_to_property(space)];
+                        for (auto houseSlot = 0; houseSlot < 5; ++houseSlot) {
+                            bool const houseIsBuilt = (buildingLevel > houseSlot);
+                            std::cout << (houseIsBuilt ? "# " : "_ ");
+                        }
+                    }
+                    if (auto const ownerOpt = state.get_property_owner_index(property)) {
+                        std::cout << *ownerOpt + 1 << " ";
+                    }
+                    else {
+                        std::cout << "* ";
+                    }
+                }
+                else {
+                    std::cout << "            ";
+                }
+                std::cout << to_string(space) << "\n";
+            }
+            for (auto p = 0; p < state.get_player_count(); ++p) {
+                std::cout << player_name(p) << ": $" << state.get_player(p).funds << "\n";
+            }
+        }
+
         bool initialized = false;
         GameState state;
         GameState prevState;
         std::mutex inputMutex;
 		std::queue<PlayerIndexInputPair> inputBuffer;
+        bool automate;
     };
 }

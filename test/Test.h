@@ -91,6 +91,9 @@ namespace monopoly
 			game.wait_for_processing();
 		}
 
+		inline void require_eliminated(int playerIndex, bool eliminated) {
+			REQUIRE(game.get_state().get_player(playerIndex).eliminated == eliminated);
+		}
 		inline void require_position(int playerIndex, Space space) {
 			REQUIRE(game.get_state().get_player(playerIndex).position == space);
 		}

@@ -30,13 +30,11 @@ namespace monopoly
 		// Blocks the calling thread until all input from the interfaces has been processed
 		void wait_for_processing();
 
-		// Must be called before forcing things from outside the class. Hold the lock until you are done modifying state
-		std::unique_lock<std::mutex> pause_processing();
+		bool game_over() const;
 
 	private:
 		void process();
 		void process_inputs();
-		void send_prompts();
 
 		void process_input(int playerIndex, Input const &input);
 		void process_roll_input(int playerIndex, RollInput const &input);
@@ -67,6 +65,7 @@ namespace monopoly
 		std::mutex mutable stateMutex;
 		std::condition_variable waitCondition;
 
+		bool gameOver;
 		int currentCycle;
 		GameState state;
 	};

@@ -166,6 +166,13 @@ namespace monopoly
 		{
 			std::shuffle(cards.begin (), cards.end (), rng);
 		}
+
+		bool operator==(Deck const& rhs) const {
+			return cards == rhs.cards;
+		}
+		bool operator!=(Deck const& rhs) const {
+			return !operator==(rhs);
+		}
 	private:
 		DeckContainer cards;
 	};

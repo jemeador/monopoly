@@ -155,4 +155,17 @@ SCENARIO("Whenever you land on an owned property you must pay rent to the ownwer
 			}
 		}
     }
+    GIVEN ("Player 1 owns St. Charles Place and starts on Reading Railroad") {
+		test.move_player(Player::p1, Space::Railroad_1);
+		test.give_deeds(Player::p1, { Property::Magenta_1 });
+
+		WHEN("player 1 rolls a 2,4 and lands on St. Charles Place") {
+			test.roll(2, 4);
+
+            THEN("player 1 pays nothing because he owns it, and his turn ends") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_phase(TurnPhase::WaitingForTurnEnd);
+			}
+		}
+    }
 }

@@ -14,11 +14,23 @@ public:
 	static int const p3 = 2;
 	static int const p4 = 3;
 
+	bool eliminated = false;
 	int funds = 1500;
 	Space position = Space::Go;
 	std::set<Property> deeds;
 	int turnsRemainingInJail = 0;
 	std::set<DeckType> getOutOfJailFreeCards;
+
+	inline bool operator==(Player const& rhs) const {
+		return funds == rhs.funds &&
+			position == rhs.position &&
+			deeds == rhs.deeds &&
+			turnsRemainingInJail == rhs.turnsRemainingInJail &&
+			getOutOfJailFreeCards == rhs.getOutOfJailFreeCards;
+	}
+	inline bool operator!=(Player const& rhs) const {
+		return !operator==(rhs);
+	}
 };
 
 inline char const* player_name(int playerIndex) {

@@ -4,6 +4,7 @@
 #include "Board.h"
 
 namespace monopoly {
+	std::string to_string(Space space);
 	std::string to_string(Property property);
 	std::string to_string(PropertyGroup group);
 	std::string to_string(DeckType deckType);

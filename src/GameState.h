@@ -42,6 +42,13 @@ namespace monopoly
 	struct Bank
 	{
 		std::set<Property> deeds = all_properties();
+
+		inline bool operator==(Bank const& rhs) const {
+			return deeds == rhs.deeds;
+		}
+		inline bool operator!=(Bank const& rhs) const {
+			return !operator==(rhs);
+		}
 	};
 
 	class GameState
@@ -51,13 +58,16 @@ namespace monopoly
 		int get_turn() const;
 		Bank get_bank() const;
 		int get_player_count() const;
+		int get_players_remaining_count() const;
 		Player get_player(int playerIndex) const;
 		int get_active_player_index() const;
 		int get_next_player_index() const;
 		int get_net_worth(int playerIndex) const;
 		std::optional<int> get_property_owner_index(Property property) const;
-		int get_properties_owned_in_group(int playerIndex, PropertyGroup group) const;
+		int get_properties_owned_in_group(Property property) const;
+		int get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const;
 		TurnPhase get_turn_phase() const;
+		int get_building_level(Property property) const;
 		std::map<Property, int> const &get_building_levels() const;
 		int calculate_rent(Property property) const;
 		bool waiting_on_prompt() const;
@@ -108,15 +118,38 @@ namespace monopoly
 
 		void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
 		void force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType);
+		void force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, int toPlayerIndex);
 		void force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType);
+		void force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
+		void force_return_get_out_of_jail_free_cards (int playerIndex);
+
+		void force_pay_bail(int playerIndex);
 
 		void force_bankrupt(int debtorPlayerIndex);
 		void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
+		void force_eliminate(int debtorPlayerIndex);
 
 		void force_roll_prompt(int playerIndex);
 		void force_property_offer_prompt(int playerIndex, Property property);
 		void force_liquidate_prompt(int debtorPlayerIndex);
 		void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex);
+
+		inline bool operator==(GameState const& rhs) const {
+            return rng == rhs.rng &&
+                turn == rhs.turn &&
+                phase == rhs.phase &&
+                bank == rhs.bank &&
+                decks == rhs.decks &&
+                players == rhs.players &&
+                activePlayerIndex == rhs.activePlayerIndex &&
+                doublesStreak == rhs.doublesStreak &&
+                lastDiceRoll == rhs.lastDiceRoll &&
+                mortgagedProperties == rhs.mortgagedProperties &&
+                buildingLevels == rhs.buildingLevels;
+		}
+		inline bool operator!=(GameState const& rhs) const {
+			return !operator==(rhs);
+		}
 
 	private:
 		static Player init_player(GameSetup const& setup);
@@ -136,7 +169,7 @@ namespace monopoly
 		int doublesStreak;
 		std::pair<int, int> lastDiceRoll;
 
-		std::set<Property> mortgagedPropreties;
+		std::set<Property> mortgagedProperties;
 		std::map<Property, int> buildingLevels;
 	};
 }

@@ -16,6 +16,7 @@ Game::Game(IInterface *interface)
 	: interface (interface)
 	, setup (interface->get_setup ())
 	, state (setup)
+	, gameOver (false)
 	, currentCycle (0)
 {
 	start();
@@ -44,16 +45,19 @@ void Game::wait_for_processing() {
 	waitCondition.wait(lock, [cycle, this] {return cycle != currentCycle;});
 }
 
-std::unique_lock<std::mutex> Game::pause_processing() {
-	return std::unique_lock<std::mutex> (stateMutex);
+bool Game::game_over() const {
+	std::lock_guard<std::mutex> lock(stateMutex);
+	return gameOver;
 }
-
 void Game::process() {
-	while (gameEndFuture.wait_for (33ms) == std::future_status::timeout) { // ~30Hz
+	while (! gameOver && gameEndFuture.wait_for (33ms) == std::future_status::timeout) { // ~30Hz
 		{
 			std::lock_guard<std::mutex> lock(stateMutex);
 			process_inputs();
             interface->update(state);
+			auto const playersRemaining = state.get_players_remaining_count();
+			if (playersRemaining < 2)
+				gameOver = true;
 		}
 		waitCondition.notify_all();
 		currentCycle++;
@@ -196,8 +200,7 @@ void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
 		return;
 	}
 
-	state.force_subtract_funds(playerIndex, BailCost);
-	state.force_leave_jail(playerIndex);
+	state.force_pay_bail(playerIndex);
 }
 
 void Game::process_bid_input(int playerIndex, BidInput const& input) {
@@ -219,6 +222,7 @@ void Game::start() {
 	std::cout << "Starting a new game" << std::endl;
 	std::promise<void> newPromise;
 	swap(gameEndPromise, newPromise);
+    gameOver = false;
 	gameEndFuture = gameEndPromise.get_future();
 	gameThread = std::thread(&Game::process, this);
 
@@ -233,5 +237,6 @@ void Game::start() {
 void Game::stop() {
 	gameEndPromise.set_value();
 	gameThread.join();
+    gameOver = true;
 	std::cout << "Game over" << std::endl;
 }

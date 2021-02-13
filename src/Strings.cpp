@@ -26,6 +26,52 @@ namespace {
         return strings;
     }
 
+	char const* lookup_key(Space space) {
+		switch (space) {
+		case Space::Go: return "Go";
+		case Space::Brown_1: return "Brown_1";
+		case Space::CommunityChest_1: return "CommunityChest_1";
+		case Space::Brown_2: return "Brown_2";
+		case Space::IncomeTax: return "IncomeTax";
+		case Space::Railroad_1: return "Railroad_1";
+		case Space::LightBlue_1: return "LightBlue_1";
+		case Space::Chance_1: return "Chance_1";
+		case Space::LightBlue_2: return "LightBlue_2";
+		case Space::LightBlue_3: return "LightBlue_3";
+		case Space::Jail: return "Jail";
+		case Space::Magenta_1: return "Magenta_1";
+		case Space::Utility_1: return "Utility_1";
+		case Space::Magenta_2: return "Magenta_2";
+		case Space::Magenta_3: return "Magenta_3";
+		case Space::Railroad_2: return "Railroad_2";
+		case Space::Orange_1: return "Orange_1";
+		case Space::CommunityChest_2: return "CommunityChest_2";
+		case Space::Orange_2: return "Orange_2";
+		case Space::Orange_3: return "Orange_3";
+		case Space::FreeParking: return "FreeParking";
+		case Space::Red_1: return "Red_1";
+		case Space::Chance_2: return "Chance_2";
+		case Space::Red_2: return "Red_2";
+		case Space::Red_3: return "Red_3";
+		case Space::Railroad_3: return "Railroad_3";
+		case Space::Yellow_1: return "Yellow_1";
+		case Space::Yellow_2: return "Yellow_2";
+		case Space::Utility_2: return "Utility_2";
+		case Space::Yellow_3: return "Yellow_3";
+		case Space::GoToJail: return "GoToJail";
+		case Space::Green_1: return "Green_1";
+		case Space::Green_2: return "Green_2";
+		case Space::CommunityChest_3: return "CommunityChest_3";
+		case Space::Green_3: return "Green_3";
+		case Space::Railroad_4: return "Railroad_4";
+		case Space::Chance_3: return "Chance_3";
+		case Space::Blue_1: return "Blue_1";
+		case Space::LuxuryTax: return "LuxuryTax";
+		case Space::Blue_2: return "Blue_2";
+		}
+	}
+
+
 	char const *lookup_key(Property property) {
 		switch (property) {
 		case Property::Brown_1: return "Brown_1";
@@ -59,6 +105,7 @@ namespace {
 		}
 		return "";
 	}
+
 	char const *lookup_key (PropertyGroup group) {
 		switch (group) {
 		case PropertyGroup::Brown: return "Brown";
@@ -117,6 +164,10 @@ namespace {
 		return "";
 	}
 
+}
+
+std::string monopoly::to_string(Space space) {
+	return label(lookup_key(space));
 }
 
 std::string monopoly::to_string(Property property) {
