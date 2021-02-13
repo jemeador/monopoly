@@ -8,7 +8,7 @@ using namespace monopoly;
 #include<numeric>
 
 GameState::GameState(GameSetup setup) 
-	: rng (std::seed_seq (setup.seed.begin (), setup.seed.end ()))
+	: rng ()
 	, phase (TurnPhase::WaitingForRoll)
 	, bank ()
 	, decks(init_decks (setup))
@@ -17,6 +17,8 @@ GameState::GameState(GameSetup setup)
 	, doublesStreak (0)
 	, lastDiceRoll (0, 0)
 {
+	std::seed_seq seedSeq(setup.seed.begin(), setup.seed.end());
+	rng = std::mt19937(seedSeq);
 	decks[DeckType::CommunityChest].shuffle(rng);
 	decks[DeckType::Chance].shuffle(rng);
 }

@@ -96,7 +96,7 @@ json const& monopoly::string_data() {
 			i >> j;
 			return j;
 		}
-		catch (std::exception const& e) {
+		catch (json::exception& e) {
 			std::cerr << e.what() << std::endl;
 			return json{};
 		}
