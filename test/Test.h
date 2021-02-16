@@ -100,6 +100,16 @@ namespace monopoly
 			interface.unmortgage_properties(pi, properties);
 			game.wait_for_processing();
 		}
+		inline void buy_building(Property property) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.buy_building(pi, property);
+			game.wait_for_processing();
+		}
+		inline void sell_building(Property property) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.sell_building(pi, property);
+			game.wait_for_processing();
+		}
 		inline void pay_bail() {
 			auto const pi = game.get_state().get_active_player_index();
 			interface.pay_bail(pi);
@@ -132,6 +142,9 @@ namespace monopoly
 		}
 		inline void require_is_mortgaged(Property property, bool mortgaged = true) {
 			REQUIRE(game.get_state().get_property_is_mortgaged(property) == mortgaged);
+		}
+		inline void require_building_level(Property property, int buildingLevel) {
+			REQUIRE(game.get_state().get_building_level(property) == buildingLevel);
 		}
 
 		inline void require_has_get_out_of_jail_free(int playerIndex, DeckType deckType) {

@@ -20,16 +20,16 @@ namespace monopoly {
 		BuyPropertyOption option;
 	};
 
-	// Improve real estate properties. Inputs that do not follow the building placement rules of monopoly are ignored.
+	// Buy a building on a property. Inputs that do not follow the building placement rules of monopoly are ignored.
 	// You may do this at any time on your turn between actions, or when you receive property from another player
-	struct BuyBuildingsInput {
-		std::map<Property, int> properties;
+	struct BuyBuildingInput {
+		Property property;
 	};
 
-	// Sell real estate properties. Inputs that do not follow the building placement rules of monopoly are ignored.
+	// Sell a building on a property. Inputs that do not follow the building placement rules of monopoly are ignored.
 	// You may do this at any time on your turn between actions, or when you receive property from another player
-	struct SellHousesInput {
-		std::map<Property, int> properties;
+	struct SellBuildingInput {
+		Property property;
 	};
 
 	// Unmortgage real estate properties.
@@ -84,8 +84,8 @@ namespace monopoly {
 	using Input = std::variant<
 		RollInput,
 		BuyPropertyInput,
-		BuyBuildingsInput,
-		SellHousesInput,
+		BuyBuildingInput,
+		SellBuildingInput,
 		UnmortgagePropertiesInput,
 		MortgagePropertiesInput,
 		UseGetOutOfJailFreeCardInput,

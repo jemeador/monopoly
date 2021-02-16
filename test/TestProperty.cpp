@@ -239,13 +239,13 @@ SCENARIO("Players must pay off mortgaged properties before they can improve prop
 
 	auto const p1Group = PropertyGroup::Orange;
 	auto const startingFunds = 1500;
+    auto const p1Property = Property::Orange_2;
 
 	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties, but they are mortgaged") {
 		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
 		test.mortgage_properties(properties_in_group(p1Group));
         test.set_player_funds(Player::p1, startingFunds);
 
-        auto const p1Property = Property::Orange_2;
 		WHEN("player 1 unmortgages " + to_string(p1Property)) {
 			test.unmortgage_property(p1Property);
 
@@ -254,8 +254,21 @@ SCENARIO("Players must pay off mortgaged properties before they can improve prop
 				test.require_is_mortgaged(p1Property, false);
 			}
 		}
+
+		AND_GIVEN("player 1 doesn't have enough money to cover the mortgage") {
+			test.set_player_funds(Player::p1, 0);
+
+            WHEN("player 1 tries to unmortgage " + to_string(p1Property)) {
+                test.unmortgage_property(p1Property);
+
+                THEN("nothing happens") {
+                    test.require_funds(Player::p1, 0);
+                    test.require_is_mortgaged(p1Property, true);
+                }
+            }
+		}
 	}
-	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties") {
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties, and they are unmortgaged") {
 		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
         test.set_player_funds(Player::p1, startingFunds);
 
@@ -266,6 +279,133 @@ SCENARIO("Players must pay off mortgaged properties before they can improve prop
 			THEN("nothing happens") {
 				test.require_funds(Player::p1, startingFunds);
 				test.require_is_mortgaged(p1Property, false);
+			}
+		}
+	}
+}
+
+SCENARIO("Players may buy/sell buildings (evenly) on real estate properties if they own the entire color group and none of them are mortgaged", "[property, building]") {
+	Test test;
+
+	auto const p1Group = PropertyGroup::Orange;
+	auto const startingFunds = 1500;
+    test.set_player_funds(Player::p1, startingFunds);
+
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+
+        auto const p1Property = Property::Orange_2;
+		WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+            test.buy_building(p1Property);
+
+			THEN("player 1 pays the price of a house for that property and a building is placed") {
+				test.require_funds(Player::p1, startingFunds - price_per_house_on_property(p1Property));
+				test.require_building_level(p1Property, 1);
+			}
+		}
+		WHEN("player 1 tries to sell a house on " + to_string(p1Property) + " (without any houses)") {
+            test.sell_building(p1Property);
+
+			THEN("nothing happens") {
+                test.require_funds(Player::p1, startingFunds);
+				test.require_building_level(p1Property, 0);
+			}
+		}
+		AND_GIVEN("player 1 already owns one house on " + to_string(p1Property) + " and none on the others") {
+			test.set_buildings({ {p1Property, 1} });
+
+            WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+                test.buy_building(p1Property);
+
+                THEN("nothing happens") {
+					test.require_funds(Player::p1, startingFunds);
+                    test.require_building_level(p1Property, 1);
+                }
+            }
+            WHEN("player 1 tries to sell a house on " + to_string(p1Property)) {
+                test.sell_building(p1Property);
+
+                THEN("player 1 collects the price of a house for that property and a building is removed") {
+                    test.require_funds(Player::p1, startingFunds + price_per_house_on_property(p1Property) / 2);
+                    test.require_building_level(p1Property, 0);
+                }
+            }
+		}
+		AND_GIVEN("player 1 already owns 2 houses on " + to_string(p1Property) + " and 3 on the others") {
+			test.set_buildings({
+				{Property::Orange_1, 3},
+				{p1Property, 2},
+				{Property::Orange_3, 3}
+				});
+
+            WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+                test.buy_building(p1Property);
+
+                THEN("player 1 pays the price of a house for that property and a building is placed") {
+                    test.require_funds(Player::p1, startingFunds - price_per_house_on_property(p1Property));
+                    test.require_building_level(p1Property, 3);
+                }
+            }
+            WHEN("player 1 tries to sell a house on " + to_string(p1Property)) {
+                test.sell_building(p1Property);
+
+                THEN("nothing happens") {
+					test.require_funds(Player::p1, startingFunds);
+                    test.require_building_level(p1Property, 2);
+                }
+            }
+		}
+		AND_GIVEN("player 1 already owns 3 hotels on " + to_string(p1Group) + " properties") {
+			test.set_buildings({
+				{Property::Orange_1, HotelLevel},
+				{Property::Orange_2, HotelLevel},
+				{Property::Orange_3, HotelLevel}
+				});
+
+            WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+                test.buy_building(p1Property);
+
+                THEN("nothing happens") {
+					test.require_funds(Player::p1, startingFunds);
+                    test.require_building_level(p1Property, 5);
+                }
+            }
+            WHEN("player 1 tries to sell a house on " + to_string(p1Property)) {
+                test.sell_building(p1Property);
+
+                THEN("player 1 collects the price of a house for that property and a building is removed") {
+                    test.require_funds(Player::p1, startingFunds + price_per_house_on_property(p1Property) / 2);
+                    test.require_building_level(p1Property, 4);
+                }
+            }
+		}
+	}
+	GIVEN("Player 1 owns all of the " + to_string(p1Group) + " properties, execept for " + to_string (Property::Orange_3)) {
+		test.give_deeds(Player::p1, { Property::Orange_1, Property::Orange_2 });
+
+        auto const p1Property = Property::Orange_2;
+		WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+            test.buy_building(p1Property);
+
+			THEN("nothing happens") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_building_level(p1Property, 0);
+			}
+		}
+	}
+
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties, but " + to_string (Property::Orange_1) + " is mortgaged") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+		test.mortgage_property(Property::Orange_1);
+		test.set_player_funds(Player::p1, startingFunds);
+
+        auto const p1Property = Property::Orange_2;
+		WHEN("player 1 tries to buy a house on " + to_string(p1Property)) {
+            test.buy_building(p1Property);
+
+			THEN("nothing happens") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_building_level(p1Property, 0);
 			}
 		}
 	}

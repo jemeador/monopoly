@@ -11,6 +11,7 @@ namespace monopoly
 {
 	static constexpr int NumberOfSpaces = 40;
 	static constexpr int MaxJailTurns = 3;
+	static constexpr int HotelLevel = 5;
 	static constexpr int BailCost = 50;
 	static constexpr int GoSalary = 200;
 	static constexpr double MortgageInterestRate = 0.10;
@@ -205,6 +206,7 @@ namespace monopoly
 	int rent_price_of_railroad(int ownedRailroads);
 	int rent_price_of_utility(int ownedUtilities, std::pair<int, int> roll);
 	int mortgage_value_of_property(Property p);
+	int unmortgage_price_of_property(Property p);
 
 	enum class Space
 	{

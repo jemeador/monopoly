@@ -174,6 +174,18 @@ bool GameState::check_if_player_is_allowed_to_buy_property(int actorIndex) const
 	if (activePlayerIndex != actorIndex) {
 		return false;
 	}
+	auto const landedOnProperty = space_to_property(players[actorIndex].position);
+	assert(landedOnProperty != Property::Invalid); // shouldn't be waiting for buy on non-property
+    if (landedOnProperty == Property::Invalid) {
+        return false;
+    }
+	assert(! get_property_owner_index (landedOnProperty).has_value ());
+    if (get_property_owner_index (landedOnProperty).has_value ()) {
+        return false;
+    }
+    if (players[actorIndex].funds < price_of_property(landedOnProperty)) {
+        return false;
+    }
 	return true;
 }
 
@@ -207,6 +219,61 @@ bool GameState::check_if_player_is_allowed_to_unmortgage(int actorIndex, Propert
     if (! get_property_is_mortgaged(property)) {
         return false;
     }
+    if (players[actorIndex].funds < unmortgage_price_of_property (property)) {
+        return false;
+    }
+	return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const {
+	static auto const allowedPhases = { TurnPhase::WaitingForBuyPropertyInput, TurnPhase::WaitingForRoll, TurnPhase::WaitingForTurnEnd };
+	if (std::find(allowedPhases.begin(), allowedPhases.end(), phase) == allowedPhases.end ()) {
+		return false;
+	}
+
+    if (players[actorIndex].funds < price_per_house_on_property(property)) {
+        return false;
+    }
+
+	auto const currentBuildingLevel = get_building_level(property);
+	if (currentBuildingLevel == HotelLevel) {
+		return false;
+	}
+	for (auto p : properties_in_group(property_group(property))) {
+        if (get_property_owner_index(p) != actorIndex) {
+            return false;
+        }
+		if (currentBuildingLevel > get_building_level(p)) {
+			return false;
+		}
+		if (get_property_is_mortgaged(p)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const {
+	static auto const allowedPhases = { TurnPhase::WaitingForBuyPropertyInput, TurnPhase::WaitingForRoll, TurnPhase::WaitingForTurnEnd };
+	if (std::find(allowedPhases.begin(), allowedPhases.end(), phase) == allowedPhases.end ()) {
+		return false;
+	}
+
+	auto const currentBuildingLevel = get_building_level(property);
+	if (currentBuildingLevel == 0) {
+		return false;
+	}
+	for (auto p : properties_in_group(property_group(property))) {
+        if (get_property_owner_index(p) != actorIndex) {
+            return false;
+        }
+		if (currentBuildingLevel < get_building_level(p)) {
+			return false;
+		}
+		if (get_property_is_mortgaged(p)) {
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -493,7 +560,7 @@ void GameState::force_unmortgage(Property property) {
 	assert(ownerOpt);
 	auto const wasMortgaged = mortgagedProperties.erase(property);
 	assert(wasMortgaged);
-	force_subtract_funds(*ownerOpt, mortgage_value_of_property (property) * (1 + MortgageInterestRate));
+	force_subtract_funds(*ownerOpt, unmortgage_price_of_property (property));
 }
 
 void GameState::force_set_mortgaged(Property property, bool mortgaged) {
@@ -505,6 +572,21 @@ void GameState::force_set_mortgaged(Property property, bool mortgaged) {
 	}
 }
 
+void GameState::force_buy_building(Property property) {
+	buildingLevels[property]++;
+	assert(buildingLevels[property] <= HotelLevel);
+	auto const ownerOpt = get_property_owner_index(property);
+	assert(ownerOpt);
+	force_subtract_funds(*ownerOpt, price_per_house_on_property(property));
+}
+
+void GameState::force_sell_building(Property property) {
+	buildingLevels[property]--;
+	assert(buildingLevels[property] >= 0);
+	auto const ownerOpt = get_property_owner_index(property);
+	assert(ownerOpt);
+	force_add_funds(*ownerOpt, price_per_house_on_property (property) / 2);
+}
 void GameState::force_set_building_levels(std::map<Property, int> newBuildingLevels) {
 	newBuildingLevels.insert(buildingLevels.begin(), buildingLevels.end());
 	swap(newBuildingLevels, buildingLevels);

@@ -82,11 +82,11 @@ void Game::process_input(int playerIndex, Input const &input) {
 	else if (auto inputPtr = std::get_if<BuyPropertyInput>(&input)) {
 		process_buy_property_input(playerIndex, *inputPtr);
 	}
-	else if (auto inputPtr = std::get_if<BuyBuildingsInput>(&input)) {
-		process_buy_buildings_input(playerIndex, *inputPtr);
+	else if (auto inputPtr = std::get_if<BuyBuildingInput>(&input)) {
+		process_buy_building_input(playerIndex, *inputPtr);
 	}
-	else if (auto inputPtr = std::get_if<SellHousesInput>(&input)) {
-		process_sell_houses_input(playerIndex, *inputPtr);
+	else if (auto inputPtr = std::get_if<SellBuildingInput>(&input)) {
+		process_sell_building_input(playerIndex, *inputPtr);
 	}
 	else if (auto inputPtr = std::get_if<UnmortgagePropertiesInput>(&input)) {
 		process_unmortgage_properties_input(playerIndex, *inputPtr);
@@ -146,11 +146,6 @@ void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& i
 	}
 }
 
-void Game::process_buy_buildings_input(int playerIndex, BuyBuildingsInput const& input) {
-}
-void Game::process_sell_houses_input(int playerIndex, SellHousesInput const& input) {
-}
-
 void Game::process_unmortgage_properties_input(int playerIndex, UnmortgagePropertiesInput const& input) {
 	for (auto property : input.properties) {
         if (! state.check_if_player_is_allowed_to_unmortgage(playerIndex, property)) {
@@ -171,6 +166,22 @@ void Game::process_mortgage_properties_input(int playerIndex, MortgageProperties
 	for (auto property : input.properties) {
 		state.force_mortgage(property);
 	}
+}
+
+void Game::process_buy_building_input(int playerIndex, BuyBuildingInput const& input) {
+	if (!state.check_if_player_is_allowed_to_buy_building(playerIndex, input.property)) {
+		return;
+	}
+
+	state.force_buy_building(input.property);
+}
+
+void Game::process_sell_building_input(int playerIndex, SellBuildingInput const& input) {
+	if (!state.check_if_player_is_allowed_to_sell_building(playerIndex, input.property)) {
+		return;
+	}
+
+	state.force_sell_building(input.property);
 }
 
 void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {

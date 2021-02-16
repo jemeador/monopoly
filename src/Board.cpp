@@ -40,6 +40,7 @@ namespace {
 	enum class DeedField : int {
 		Price = 0, PricePerHouse, Rent, Rent1, Rent2, Rent3, Rent4, RentHotel, Mortgage,
 	};
+	static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent));
 	static const int tableColumns = 9;
 
 	inline int real_estate_table_lookup(Property p, DeedField f) {
@@ -47,6 +48,7 @@ namespace {
 		int const col = static_cast<int> (f);
 		return real_estate_table[row * tableColumns + col];
 	}
+
 }
 
 int monopoly::price_of_property(Property p) {
@@ -81,5 +83,8 @@ int monopoly::rent_price_of_utility(int ownedUtilities, std::pair<int, int> roll
 }
 int monopoly::mortgage_value_of_property(Property p) {
 	return real_estate_table_lookup(p, DeedField::Mortgage);
+}
+int monopoly::unmortgage_price_of_property(Property p) {
+	return real_estate_table_lookup(p, DeedField::Mortgage) * (1 + MortgageInterestRate);
 }
 

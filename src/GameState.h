@@ -80,6 +80,8 @@ namespace monopoly
 		bool check_if_player_is_allowed_to_buy_property(int actorIndex) const;
 		bool check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const;
 		bool check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const;
+		bool check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const;
+		bool check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const;
 
 		void force_turn_start(int playerIndex);
 		void force_turn_continue();
@@ -122,6 +124,9 @@ namespace monopoly
 
 		void force_mortgage(Property property);
 		void force_unmortgage(Property property);
+
+		void force_buy_building(Property property);
+		void force_sell_building(Property property);
 
 		void force_set_mortgaged(Property property, bool mortgaged);
 		void force_set_building_levels(std::map<Property, int> newBuildingLevels);
