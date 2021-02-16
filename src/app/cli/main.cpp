@@ -8,10 +8,10 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	auto interface = CommandLineInterface ();
-	auto game = Game(&interface);
+    auto interface = CommandLineInterface();
+    auto game = Game(&interface);
 
-	while (! game.game_over ()) {
-	}
+    while (!game.game_over()) {
+    }
 }
 

@@ -17,7 +17,7 @@ namespace monopoly
             : IInterface()
             , inputMutex()
             , inputBuffer()
-            , automate (automate) {
+            , automate(automate) {
         }
 
         GameSetup get_setup() final {
@@ -28,20 +28,20 @@ namespace monopoly
 
         std::queue<PlayerIndexInputPair> poll() final {
             std::lock_guard<std::mutex> lock(inputMutex);
-			std::queue<PlayerIndexInputPair> ret;
+            std::queue<PlayerIndexInputPair> ret;
             swap(ret, inputBuffer);
             return ret;
         }
 
-		void update(GameState newState) final {
+        void update(GameState newState) final {
             state = newState;
             update_prompt();
-            std::swap (prevState, state);
+            std::swap(prevState, state);
         }
 
     private:
         void update_prompt() {
-            if (prompt_change_required ()) {
+            if (prompt_change_required()) {
                 switch (state.get_turn_phase()) {
                 case TurnPhase::WaitingForRoll:
                     show_waiting_for_roll_prompt();
@@ -71,19 +71,19 @@ namespace monopoly
                 }
                 options.push_back(bailOption);
             }
-            get_input (activePlayerIndex, options);
+            get_input(activePlayerIndex, options);
         }
 
         void show_waiting_for_buy_property_prompt() {
             auto const activePlayerIndex = state.get_active_player_index();
             auto options = defaultOptions + buyOption + auctionOption;
-            get_input (activePlayerIndex, options);
+            get_input(activePlayerIndex, options);
         }
 
         void show_waiting_for_turn_end_prompt() {
             auto const activePlayerIndex = state.get_active_player_index();
             auto options = defaultOptions + endTurnOption;
-            get_input (activePlayerIndex, options);
+            get_input(activePlayerIndex, options);
         }
 
 
@@ -102,7 +102,7 @@ namespace monopoly
 
         std::string const defaultOptions = "sq";
 
-        inline static const auto optionText = std::map<char, char const*> {
+        inline static const auto optionText = std::map<char, char const*>{
             {rollOption, "[r]oll" },
             {manageOption, "[m]anage properties" },
             {tradeOption, "[t]rade" },
@@ -116,23 +116,23 @@ namespace monopoly
         };
 
         void show_prompted_player(int activePlayer) {
-            std::cout << player_name (activePlayer) << ":\n";
+            std::cout << player_name(activePlayer) << ":\n";
         }
 
-        void show_options(std::string const &options) {
+        void show_options(std::string const& options) {
             for (auto o : options) {
-                std::cout << "\t" << optionText.at (o) << "\n";
+                std::cout << "\t" << optionText.at(o) << "\n";
             }
         }
 
-        void get_input(int playerIndex, std::string const &options) {
+        void get_input(int playerIndex, std::string const& options) {
             bool validInput = false;
-            while (! validInput) {
+            while (!validInput) {
                 if (automate) {
                     show_board();
                 }
                 show_prompted_player(playerIndex);
-                show_options (options);
+                show_options(options);
                 char input;
                 if (automate) {
                     input = auto_input(options);
@@ -202,23 +202,23 @@ namespace monopoly
 
         void queue_roll_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {}});
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {} });
         }
         void queue_purchase_property_input(int playerIndex, BuyPropertyOption option) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { option }});
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { option } });
         }
         void queue_use_get_out_of_jail_free_card_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {}});
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {} });
         }
         void queue_pay_bail_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {}});
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {} });
         }
         void queue_end_turn_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, CloseInput {}});
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, CloseInput {} });
         }
 
         void show_board() {
@@ -282,7 +282,7 @@ namespace monopoly
         GameState state;
         GameState prevState;
         std::mutex inputMutex;
-		std::queue<PlayerIndexInputPair> inputBuffer;
+        std::queue<PlayerIndexInputPair> inputBuffer;
         bool automate;
     };
 }
