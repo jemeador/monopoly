@@ -13,6 +13,7 @@ namespace monopoly
 	static constexpr int MaxJailTurns = 3;
 	static constexpr int BailCost = 50;
 	static constexpr int GoSalary = 200;
+	static constexpr double MortgageInterestRate = 0.10;
 
 	enum class PropertyGroup
 	{
@@ -102,6 +103,8 @@ namespace monopoly
         case Property::Railroad_4:
             return PropertyGroup::Railroad;
 		}
+		assert(false); // unreachable
+		return PropertyGroup::Railroad;
 	}
 
 	inline std::set<Property> properties_in_group(PropertyGroup group) {

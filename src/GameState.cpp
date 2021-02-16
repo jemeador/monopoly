@@ -78,7 +78,11 @@ std::optional<int> GameState::get_property_owner_index(Property property) const 
 	}
 	return {};
  }
- 
+
+bool GameState::get_property_is_mortgaged(Property property) const {
+	return mortgagedProperties.count (property) > 0;
+}
+
 int GameState::get_properties_owned_in_group(Property property) const {
 	auto const ownerOpt = get_property_owner_index(property);
     auto const ownedGroupCount = ownerOpt
@@ -153,6 +157,58 @@ std::pair<int, int> GameState::get_last_dice_roll() const {
 	return lastDiceRoll;
 }
 
+bool GameState::check_if_player_is_allowed_to_roll(int actorIndex) const {
+	if (phase != TurnPhase::WaitingForRoll) {
+		return false;
+	}
+	if (activePlayerIndex != actorIndex) {
+		return false;
+	}
+	return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_buy_property(int actorIndex) const {
+	if (phase != TurnPhase::WaitingForBuyPropertyInput) {
+		return false;
+	}
+	if (activePlayerIndex != actorIndex) {
+		return false;
+	}
+	return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const {
+	static auto const allowedPhases = { TurnPhase::WaitingForBuyPropertyInput, TurnPhase::WaitingForRoll, TurnPhase::WaitingForTurnEnd };
+	if (std::find(allowedPhases.begin(), allowedPhases.end(), phase) == allowedPhases.end ()) {
+		return false;
+	}
+    if (get_property_owner_index(property) != actorIndex) {
+        return false;
+    }
+    if (get_property_is_mortgaged(property)) {
+        return false;
+    }
+	for (auto property : properties_in_group(property_group(property))) {
+		if (get_building_level (property) > 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const {
+	static auto const allowedPhases = { TurnPhase::WaitingForBuyPropertyInput, TurnPhase::WaitingForRoll, TurnPhase::WaitingForTurnEnd };
+	if (std::find(allowedPhases.begin(), allowedPhases.end(), phase) == allowedPhases.end ()) {
+		return false;
+	}
+    if (get_property_owner_index(property) != actorIndex) {
+        return false;
+    }
+    if (! get_property_is_mortgaged(property)) {
+        return false;
+    }
+	return true;
+}
 
 void GameState::force_turn_start(int playerIndex) {
 	++turn;
@@ -422,6 +478,31 @@ void GameState::force_transfer_deed(std::set<Property>& from, std::set<Property>
 void GameState::force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds) {
 	for (auto deed : deeds)
 		force_transfer_deed(from, to, deed);
+}
+
+void GameState::force_mortgage(Property property) {
+	auto const ownerOpt = get_property_owner_index(property);
+	assert(ownerOpt);
+	auto const wasMortgaged = mortgagedProperties.insert(property).second;
+	assert(wasMortgaged);
+	force_add_funds(*ownerOpt, mortgage_value_of_property (property));
+}
+
+void GameState::force_unmortgage(Property property) {
+	auto const ownerOpt = get_property_owner_index(property);
+	assert(ownerOpt);
+	auto const wasMortgaged = mortgagedProperties.erase(property);
+	assert(wasMortgaged);
+	force_subtract_funds(*ownerOpt, mortgage_value_of_property (property) * (1 + MortgageInterestRate));
+}
+
+void GameState::force_set_mortgaged(Property property, bool mortgaged) {
+	if (mortgaged) {
+		mortgagedProperties.insert(property);
+	}
+	else {
+		mortgagedProperties.erase(property);
+	}
 }
 
 void GameState::force_set_building_levels(std::map<Property, int> newBuildingLevels) {

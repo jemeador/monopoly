@@ -64,6 +64,7 @@ namespace monopoly
 		int get_next_player_index() const;
 		int get_net_worth(int playerIndex) const;
 		std::optional<int> get_property_owner_index(Property property) const;
+		bool get_property_is_mortgaged(Property property) const;
 		int get_properties_owned_in_group(Property property) const;
 		int get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const;
 		TurnPhase get_turn_phase() const;
@@ -74,6 +75,11 @@ namespace monopoly
 
 		std::pair<int, int> random_dice_roll();
 		std::pair<int, int> get_last_dice_roll() const;
+
+		bool check_if_player_is_allowed_to_roll(int actorIndex) const;
+		bool check_if_player_is_allowed_to_buy_property(int actorIndex) const;
+		bool check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const;
+		bool check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const;
 
 		void force_turn_start(int playerIndex);
 		void force_turn_continue();
@@ -114,6 +120,10 @@ namespace monopoly
 		void force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed);
 		void force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds);
 
+		void force_mortgage(Property property);
+		void force_unmortgage(Property property);
+
+		void force_set_mortgaged(Property property, bool mortgaged);
 		void force_set_building_levels(std::map<Property, int> newBuildingLevels);
 
 		void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
@@ -127,7 +137,6 @@ namespace monopoly
 
 		void force_bankrupt(int debtorPlayerIndex);
 		void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
-		void force_eliminate(int debtorPlayerIndex);
 
 		void force_roll_prompt(int playerIndex);
 		void force_property_offer_prompt(int playerIndex, Property property);

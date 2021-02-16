@@ -80,6 +80,26 @@ namespace monopoly
 			interface.auction_property(pi);
 			game.wait_for_processing();
 		}
+		inline void mortgage_property(Property property) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.mortgage_property(pi, property);
+			game.wait_for_processing();
+		}
+		inline void mortgage_properties(std::set<Property> properties) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.mortgage_properties(pi, properties);
+			game.wait_for_processing();
+		}
+		inline void unmortgage_property(Property property) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.unmortgage_property(pi, property);
+			game.wait_for_processing();
+		}
+		inline void unmortgage_properties(std::set<Property> properties) {
+			auto const pi = game.get_state().get_active_player_index();
+			interface.unmortgage_properties(pi, properties);
+			game.wait_for_processing();
+		}
 		inline void pay_bail() {
 			auto const pi = game.get_state().get_active_player_index();
 			interface.pay_bail(pi);
@@ -109,6 +129,9 @@ namespace monopoly
 			auto d = game.get_state ().get_player(playerIndex).deeds;
 			REQUIRE(std::none_of(d.begin(), d.end(),
 				[property](Property p) { return p == property; }));
+		}
+		inline void require_is_mortgaged(Property property, bool mortgaged = true) {
+			REQUIRE(game.get_state().get_property_is_mortgaged(property) == mortgaged);
 		}
 
 		inline void require_has_get_out_of_jail_free(int playerIndex, DeckType deckType) {

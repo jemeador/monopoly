@@ -5,7 +5,7 @@ using namespace monopoly;
 
 #include <cassert>
 
-SCENARIO("On a player's turn, they roll the dice and move the indicated number of spaces", "[turn]") {
+SCENARIO("On a player's turn, they roll the dice and move the indicated number of spaces", "[movement]") {
 	Test test;
 	auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
 
@@ -35,7 +35,7 @@ SCENARIO("On a player's turn, they roll the dice and move the indicated number o
     }
 }
 
-SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") {
+SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[movement]") {
 	Test test;
 
     GIVEN ("Player 1 starts on GO") {
@@ -76,7 +76,7 @@ SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[turn]") 
     }
 }
 
-SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, or paying bail", "[turn]") {
+SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, or paying bail", "[movement]") {
 	Test test;
 	auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
 
@@ -139,7 +139,7 @@ SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, o
     }
 }
 
-SCENARIO("Rolling random dice always yields a valid dice roll", "[turn]") {
+SCENARIO("Rolling random dice always yields a valid dice roll", "[movement]") {
 	Test test;
 
 	for (auto i = 0; i < 50; ++i) {

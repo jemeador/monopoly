@@ -169,3 +169,104 @@ SCENARIO("Whenever you land on an owned property you must pay rent to the ownwer
 		}
     }
 }
+
+SCENARIO("Players can receive loans from the bank by mortgaging properties in an unimproved group.", "[property]") {
+	Test test;
+	auto const startingFunds = 1500;
+	auto const p1Group = PropertyGroup::Orange;
+    auto const p1Property = Property::Orange_2;
+    auto const p1PropertyWithImprovements = Property::Orange_1;
+	auto const p2Group = PropertyGroup::Blue;
+    auto const p2Property = Property::Blue_2;
+
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties and player 2 owns all the " + to_string (p2Group) + " properties") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+		test.give_deeds(Player::p2, { properties_in_group(p2Group) });
+        test.set_player_funds(Player::p1, startingFunds);
+        test.set_player_funds(Player::p2, startingFunds);
+
+		WHEN("player 1 mortgages " + to_string(p1Property)) {
+			test.set_active_player(Player::p1);
+			test.mortgage_property(p1Property);
+
+			THEN("player 1 gets the mortgage value of the property from the bank") {
+				test.require_funds(Player::p1, startingFunds + mortgage_value_of_property (p1Property));
+				test.require_is_mortgaged(p1Property, true);
+			}
+		}
+		WHEN("player 1 tries to mortgage " + to_string(p2Property)) {
+			test.set_active_player(Player::p1);
+			test.mortgage_property(p2Property);
+
+			THEN("nothing happens") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_is_mortgaged(p2Property, false);
+			}
+		}
+
+		AND_GIVEN(to_string (p1PropertyWithImprovements) + " has 1 house") {
+			test.set_buildings({ {p1PropertyWithImprovements, 1} });
+
+            WHEN("player 1 tries to mortgage " + to_string(p1Property)) {
+                test.set_active_player(Player::p1);
+                test.mortgage_property(p1Property);
+
+                THEN("nothing happens") {
+                    test.require_funds(Player::p1, startingFunds);
+                    test.require_is_mortgaged(p2Property, false);
+                }
+            }
+		}
+	}
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties, but they are mortgaged") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+		test.mortgage_properties(properties_in_group(p1Group));
+        test.set_player_funds(Player::p1, startingFunds);
+
+		WHEN("player 1 tries to mortgage an already mortgaged " + to_string(p1Property)) {
+			test.mortgage_property(p1Property);
+
+			THEN("nothing happens") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_is_mortgaged(p1Property, true);
+			}
+		}
+	}
+}
+
+SCENARIO("Players must pay off mortgaged properties before they can improve properties in the group or collect rent on the property.", "[property]") {
+	Test test;
+
+	auto const p1Group = PropertyGroup::Orange;
+	auto const startingFunds = 1500;
+
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties, but they are mortgaged") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+		test.mortgage_properties(properties_in_group(p1Group));
+        test.set_player_funds(Player::p1, startingFunds);
+
+        auto const p1Property = Property::Orange_2;
+		WHEN("player 1 unmortgages " + to_string(p1Property)) {
+			test.unmortgage_property(p1Property);
+
+			THEN("player 1 pays the mortgage value of the property, plus interest, to the bank") {
+				test.require_funds(Player::p1, startingFunds - mortgage_value_of_property (p1Property) * (1 + MortgageInterestRate));
+				test.require_is_mortgaged(p1Property, false);
+			}
+		}
+	}
+	GIVEN("Player 1 owns all of the " + to_string (p1Group) + " properties") {
+		test.give_deeds(Player::p1, { properties_in_group(p1Group) });
+        test.set_player_funds(Player::p1, startingFunds);
+
+        auto const p1Property = Property::Orange_2;
+		WHEN("player 1 tries to unmortgage " + to_string(p1Property)) {
+			test.unmortgage_property(p1Property);
+
+			THEN("nothing happens") {
+				test.require_funds(Player::p1, startingFunds);
+				test.require_is_mortgaged(p1Property, false);
+			}
+		}
+	}
+}

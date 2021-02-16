@@ -112,12 +112,7 @@ void Game::process_input(int playerIndex, Input const &input) {
 }
 
 void Game::process_roll_input(int playerIndex, RollInput const& input) {
-	if (state.get_turn_phase () != TurnPhase::WaitingForRoll) {
-		std::cout << player_name(playerIndex) << " can't roll right now; not the right phase (" << to_string (state.get_turn_phase ()) << ")" << std::endl;
-		return;
-	}
-	if (state.get_active_player_index () != playerIndex) {
-		std::cout << player_name(playerIndex) << " can't roll right now; not the active player (" << player_name(state.get_active_player_index ()) << std::endl;
+	if (! state.check_if_player_is_allowed_to_roll(playerIndex)) {
 		return;
 	}
 
@@ -133,12 +128,7 @@ void Game::process_roll_input(int playerIndex, RollInput const& input) {
 }
 
 void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& input) {
-	if (state.get_turn_phase () != TurnPhase::WaitingForBuyPropertyInput) {
-		std::cout << player_name(playerIndex) << " isn't buying right now; not the right phase (" << to_string (state.get_turn_phase ()) << ")" << std::endl;
-		return;
-	}
-	if (state.get_active_player_index () != playerIndex) {
-		std::cout << player_name(playerIndex) << " isn't buying right now; not the active player (" << player_name(state.get_active_player_index ()) << std::endl;
+	if (! state.check_if_player_is_allowed_to_buy_property(playerIndex)) {
 		return;
 	}
 
@@ -160,9 +150,27 @@ void Game::process_buy_buildings_input(int playerIndex, BuyBuildingsInput const&
 }
 void Game::process_sell_houses_input(int playerIndex, SellHousesInput const& input) {
 }
+
 void Game::process_unmortgage_properties_input(int playerIndex, UnmortgagePropertiesInput const& input) {
+	for (auto property : input.properties) {
+        if (! state.check_if_player_is_allowed_to_unmortgage(playerIndex, property)) {
+			return;
+        }
+	}
+	for (auto property : input.properties) {
+		state.force_unmortgage(property);
+	}
 }
+
 void Game::process_mortgage_properties_input(int playerIndex, MortgagePropertiesInput const& input) {
+	for (auto property : input.properties) {
+        if (! state.check_if_player_is_allowed_to_mortgage(playerIndex, property)) {
+			return;
+        }
+	}
+	for (auto property : input.properties) {
+		state.force_mortgage(property);
+	}
 }
 
 void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {

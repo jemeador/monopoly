@@ -18,27 +18,53 @@ namespace monopoly
         }
 
         void roll_dice(int playerIndex) {
-            queue_roll_input(playerIndex);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {}});
         }
 
         void roll_loaded_dice(int playerIndex, std::pair<int, int> diceValues) {
-            queue_roll_input(playerIndex, diceValues);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {diceValues}});
         }
 
         void buy_property(int playerIndex) {
-            queue_purchase_property_input(playerIndex, BuyPropertyOption::Buy);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { BuyPropertyOption::Buy }});
         }
 
         void auction_property(int playerIndex) {
-            queue_purchase_property_input(playerIndex, BuyPropertyOption::Auction);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput {  BuyPropertyOption::Auction }});
+        }
+
+        void mortgage_property(int playerIndex, Property property) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, MortgagePropertiesInput{ {property} } });
+        }
+
+        void mortgage_properties(int playerIndex, std::set<Property> properties) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, MortgagePropertiesInput{ properties } });
+        }
+
+        void unmortgage_property(int playerIndex, Property property) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UnmortgagePropertiesInput{ {property} } });
+        }
+
+        void unmortgage_properties(int playerIndex, std::set<Property> properties) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UnmortgagePropertiesInput{ properties } });
         }
 
         void use_get_out_of_jail_free_card(int playerIndex) {
-            queue_use_get_out_of_jail_free_card_input(playerIndex);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {}});
         }
 
         void pay_bail(int playerIndex) {
-            queue_pay_bail_input(playerIndex);
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {}});
         }
 
         bool has_input () {
@@ -63,27 +89,6 @@ namespace monopoly
         }
 
     private:
-        void queue_roll_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {}});
-        }
-        void queue_roll_input(int playerIndex, std::pair<int, int> diceValues) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput { diceValues }});
-        }
-        void queue_purchase_property_input(int playerIndex, BuyPropertyOption option) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { option }});
-        }
-        void queue_use_get_out_of_jail_free_card_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {}});
-        }
-        void queue_pay_bail_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {}});
-        }
-
         std::mutex inputMutex;
 		std::queue<PlayerIndexInputPair> inputBuffer;
     };
