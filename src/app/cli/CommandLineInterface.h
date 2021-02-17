@@ -218,7 +218,7 @@ namespace monopoly
         }
         void queue_end_turn_input(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, CloseInput {} });
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, EndTurnInput {} });
         }
 
         void show_board() {

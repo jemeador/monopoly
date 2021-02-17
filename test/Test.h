@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Game.h"
 #include "TestInterface.h"
 #include "Board.h"
@@ -120,6 +122,10 @@ namespace monopoly
             interface.use_get_out_of_jail_free_card(pi);
             game.wait_for_processing();
         }
+        inline void bid(int playerIndex, int bid) {
+            interface.bid(playerIndex, bid);
+            game.wait_for_processing();
+        }
 
         inline void require_eliminated(int playerIndex, bool eliminated) {
             REQUIRE(game.get_state().get_player(playerIndex).eliminated == eliminated);
@@ -171,6 +177,11 @@ namespace monopoly
         inline void require_active_player(int playerIndex) {
             REQUIRE(game.get_state().get_active_player_index() == playerIndex);
         }
-
+        inline void require_highest_bid(int bidderIndex, int bid) {
+            auto const auction = game.get_state().get_current_auction();
+            REQUIRE(auction.has_value ());
+            REQUIRE(auction->highestBid == bid);
+            REQUIRE(auction->biddingOrder.back () == bidderIndex);
+        }
     };
 }

@@ -1,4 +1,7 @@
+#pragma once
+
 #include "Board.h"
+#include "GameState.h"
 
 #include <map>
 #include <set>
@@ -58,27 +61,24 @@ namespace monopoly {
     // Bid in an auction
     // You may do this when receiving a bid prompt
     struct BidInput {
-        int funds;
+        int amount;
     };
 
-    struct OfferTradeAssets {
-        int funds;
-        std::set<Property> deeds;
-        std::set<DeckType> getOutOfJailFreeCards;
+    // Decline to bid, you can no longer bid in this auction
+    // You may do this when receiving a bid prompt
+    struct DeclineBidInput {
     };
+
     // Offer a trade to another player
     // You may do this at any time on your turn between actions, or when you receive property from another player
     struct OfferTradeInput {
-        OfferTradeAssets offering;
-        int tradingPartnerIndex;
-        OfferTradeAssets tradingPartnerAssets;
+        Promise offer;
+        int consideringPlayer;
+        Promise consideration;
     };
 
-    // Ends your turn, declines an offer, or turns over control to another player.
-    // Can be used during any prompt to decline to take any action, or to take the default action (such as rolling)
-    //
-    // The game could be played entirely by sending the close input (though you wouldn't buy anything or do very well)
-    struct CloseInput {
+    // Ends your turn
+    struct EndTurnInput {
     };
 
     using Input = std::variant<
@@ -91,8 +91,9 @@ namespace monopoly {
         UseGetOutOfJailFreeCardInput,
         PayBailInput,
         BidInput,
+        DeclineBidInput,
         OfferTradeInput,
-        CloseInput
+        EndTurnInput
     >;
     using PlayerIndexInputPair = std::pair<int, Input>;
 }

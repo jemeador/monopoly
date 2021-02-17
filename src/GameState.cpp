@@ -13,9 +13,16 @@ GameState::GameState(GameSetup setup)
     , bank()
     , decks(init_decks(setup))
     , players(init_players(setup))
-    , activePlayerIndex(0)
     , doublesStreak(0)
     , lastDiceRoll(0, 0)
+    , pendingTradeAgreement()
+    , pendingDebtSettlements()
+    , currentAuction()
+    , propertiesPendingAuction()
+    , pendingAcquisitions()
+    , pendingPurchaseDecision(false)
+    , pendingRoll(true)
+    , activePlayerIndex(Player::p1)
 {
     std::seed_seq seedSeq(setup.seed.begin(), setup.seed.end());
     rng = std::mt19937(seedSeq);
@@ -47,12 +54,15 @@ int GameState::get_active_player_index() const {
     return activePlayerIndex;
 }
 
-int GameState::get_next_player_index() const {
-    int index = activePlayerIndex;
+int GameState::get_next_player_index(int playerIndex) const {
+    if (playerIndex == -1) {
+        playerIndex = activePlayerIndex;
+    }
+    int nextIndex = playerIndex;
     do {
-        index = (index + 1) % static_cast<int> (players.size());
-    } while (players[index].eliminated && index != activePlayerIndex);
-    return index;
+        nextIndex = (nextIndex + 1) % static_cast<int> (players.size());
+    } while (players[nextIndex].eliminated && nextIndex != playerIndex);
+    return nextIndex;
 }
 
 int GameState::get_net_worth(int playerIndex) const {
@@ -112,6 +122,10 @@ std::map<Property, int> const& GameState::get_building_levels() const {
     return buildingLevels;
 }
 
+std::optional<Auction> GameState::get_current_auction() const {
+    return currentAuction;
+}
+
 int GameState::calculate_rent(Property property) const {
     auto const ownerOpt = get_property_owner_index(property);
     if (!ownerOpt) {
@@ -142,8 +156,12 @@ int GameState::calculate_rent(Property property) const {
     }
 }
 
-bool GameState::waiting_on_prompt() const {
-    return (phase == TurnPhase::WaitingForBuyPropertyInput);
+bool GameState::waiting_on_player_actions() const {
+    static auto const playerActionPhases = {
+        TurnPhase::WaitingForBuyPropertyInput,
+        TurnPhase::WaitingForBids,
+    };
+    return std::find(playerActionPhases.begin(), playerActionPhases.end(), phase) != playerActionPhases.end();
 }
 
 std::pair<int, int> GameState::random_dice_roll() {
@@ -162,6 +180,42 @@ bool GameState::check_if_player_is_allowed_to_roll(int actorIndex) const {
         return false;
     }
     if (activePlayerIndex != actorIndex) {
+        return false;
+    }
+    return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_use_get_out_jail_free_card(int actorIndex) const {
+    if (phase != TurnPhase::WaitingForRoll) {
+        return false;
+    }
+    if (activePlayerIndex != actorIndex) {
+        return false;
+    }
+    auto const& player = players.at(actorIndex);
+
+    if (player.turnsRemainingInJail == 0) {
+        return false;
+    }
+    if (player.getOutOfJailFreeCards.empty()) {
+        return false;
+    }
+
+    return true;
+}
+bool GameState::check_if_player_is_allowed_to_pay_bail(int actorIndex) const {
+    if (phase != TurnPhase::WaitingForRoll) {
+        return false;
+    }
+    if (activePlayerIndex != actorIndex) {
+        return false;
+    }
+    auto const& player = players.at(actorIndex);
+
+    if (player.turnsRemainingInJail == 0) {
+        return false;
+    }
+    if (player.funds < BailCost) {
         return false;
     }
     return true;
@@ -277,21 +331,47 @@ bool GameState::check_if_player_is_allowed_to_sell_building(int actorIndex, Prop
     return true;
 }
 
-void GameState::force_turn_start(int playerIndex) {
-    ++turn;
-    force_roll_prompt(playerIndex);
+bool GameState::check_if_player_is_allowed_to_bid(int actorIndex, int amount) const {
+    // If a player can't decline a bid, they can't bid; but we still have to check the amount bid
+    if (! check_if_player_is_allowed_to_decline_bid (actorIndex)) {
+        return false;
+    }
+    if (amount <= currentAuction->highestBid) {
+        return false;
+    }
+    // todo Compare with liquid asset value and account for closing costs, don't let players bankrupt themselves (it could get messy)
+    return true;
 }
 
-void GameState::force_turn_continue() {
-    if (doublesStreak > 0)
-        force_turn_start(activePlayerIndex);
-    else
-        force_turn_end();
+bool GameState::check_if_player_is_allowed_to_decline_bid(int actorIndex) const {
+    if (phase != TurnPhase::WaitingForBids) {
+        return false;
+    }
+    assert(currentAuction);
+    if (!currentAuction) {
+        return false;
+    }
+    assert(!currentAuction->biddingOrder.empty());
+    if (currentAuction->biddingOrder.empty ()) {
+        return false;
+    }
+    if (actorIndex != currentAuction->biddingOrder.front()) {
+        return false;
+    }
+    return true;
+}
+
+void GameState::force_turn_start(int playerIndex) {
+    ++turn;
+    pendingRoll = true;
+    activePlayerIndex = playerIndex;
+    resolve_game_state();
 }
 
 void GameState::force_turn_end() {
     doublesStreak = 0;
-    phase = TurnPhase::WaitingForTurnEnd;
+    pendingRoll = false;
+    resolve_game_state();
 }
 
 void GameState::force_funds(int playerIndex, int funds) {
@@ -349,10 +429,12 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
 
     std::cout << "Rolled " << roll.first << "," << roll.second << std::endl;
 
-    if (roll.first == roll.second)
+    if (roll.first == roll.second) {
         doublesStreak += 1;
-    else
+    }
+    else {
         doublesStreak = 0;
+    }
 
     if (players[playerIndex].turnsRemainingInJail > 0) {
         if (doublesStreak > 0) {
@@ -380,6 +462,7 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
         return;
     }
 
+    pendingRoll = doublesStreak > 0;
     int const sum = roll.first + roll.second;
     force_advance(playerIndex, sum);
 }
@@ -456,10 +539,7 @@ void GameState::force_land(int playerIndex, Space space) {
         }
     }
 
-    // Some effects can cause a prompt to open
-    if (!waiting_on_prompt()) {
-        force_turn_continue();
-    }
+    resolve_game_state();
 }
 
 void GameState::force_position(int playerIndex, Space space) {
@@ -467,15 +547,8 @@ void GameState::force_position(int playerIndex, Space space) {
 }
 
 void GameState::force_property_offer(int playerIndex, Property property) {
-    std::cout << "Offering unowned property" << std::endl;
     if (bank.deeds.count(property)) {
-        if (players[playerIndex].funds >= price_of_property(property)) {
-            force_property_offer_prompt(playerIndex, property);
-        }
-        else
-        {
-            force_property_auction(property);
-        }
+        force_property_offer_prompt(playerIndex, property);
     }
 }
 
@@ -517,13 +590,14 @@ void GameState::force_property_buy(int playerIndex, Property property) {
     std::cout << "Purchasing property" << std::endl;
     force_subtract_funds(playerIndex, price_of_property(property));
     force_give_deed(playerIndex, property);
-    force_turn_continue();
+    pendingPurchaseDecision = false;
+    resolve_game_state();
 }
 
 void GameState::force_property_auction(Property property) {
-    std::cout << "Auctioning property" << std::endl;
-    // todo auction
-    force_turn_continue();
+    propertiesPendingAuction.push(property);
+    pendingPurchaseDecision = false;
+    resolve_game_state();
 }
 
 void GameState::force_give_deed(int playerIndex, Property property) {
@@ -667,14 +741,11 @@ void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
     debtor.eliminated = true;
 }
 
-void GameState::force_roll_prompt(int playerIndex) {
-    activePlayerIndex = playerIndex;
-    phase = TurnPhase::WaitingForRoll;
-}
-
 void GameState::force_property_offer_prompt(int playerIndex, Property property) {
+    std::cout << "Offering unowned property " << to_string(property) << std::endl;
     activePlayerIndex = playerIndex;
-    phase = TurnPhase::WaitingForBuyPropertyInput;
+    pendingPurchaseDecision = true;
+    resolve_game_state();
 }
 
 void GameState::force_liquidate_prompt(int debtorPlayerIndex) {
@@ -687,6 +758,19 @@ void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayer
     force_bankrupt(debtorPlayerIndex, creditorPlayerIndex);
 }
 
+void GameState::force_bid(int playerIndex, int amount) {
+    assert(check_if_player_is_allowed_to_bid (playerIndex, amount));
+    currentAuction->highestBid = amount;
+    currentAuction->biddingOrder.pop();
+    currentAuction->biddingOrder.push(playerIndex);
+    resolve_game_state();
+}
+
+void GameState::force_decline_bid(int playerIndex) {
+    assert(check_if_player_is_allowed_to_decline_bid (playerIndex));
+    currentAuction->biddingOrder.pop();
+    resolve_game_state();
+}
 
 Player GameState::init_player(GameSetup const& setup) {
     Player p;
@@ -707,4 +791,68 @@ std::map<DeckType, Deck> GameState::init_decks(GameSetup const& setup) {
         { DeckType::Chance, init_deck(setup, DeckType::Chance) },
         { DeckType::CommunityChest, init_deck(setup, DeckType::CommunityChest) },
     };
+}
+
+void GameState::resolve_game_state() {
+    if (!pendingTradeAgreement.empty()) {
+        phase = TurnPhase::WaitingForTrade;
+    }
+    else if (!pendingDebtSettlements.empty()) {
+        phase = TurnPhase::WaitingForDebtSettlement;
+    }
+    else if (currentAuction.has_value()) {
+        resolve_auction();
+        phase = TurnPhase::WaitingForBids;
+    }
+    else if (!propertiesPendingAuction.empty()) {
+        queue_auction(propertiesPendingAuction.front());
+    }
+    else if (!pendingAcquisitions.empty()) {
+        phase = TurnPhase::WaitingForAcquisitionManagement;
+    }
+    else if (pendingPurchaseDecision) {
+        phase = TurnPhase::WaitingForBuyPropertyInput;
+    }
+    else if (pendingRoll) {
+        phase = TurnPhase::WaitingForRoll;
+    }
+    else if (activePlayerIndex != get_next_player_index ()) {
+        phase = TurnPhase::WaitingForTurnEnd;
+    }
+}
+
+void GameState::resolve_auction() {
+    auto const highestBidderIndex = currentAuction->biddingOrder.back();
+    auto const nextBidderIndex = currentAuction->biddingOrder.front();
+    std::cout << to_string (currentAuction->property) << " going to " <<
+        player_name(highestBidderIndex) << " for $" << currentAuction->highestBid << std::endl;
+    if (currentAuction->biddingOrder.size() > 1) {
+        std::cout << player_name(nextBidderIndex) << ": Bid or decline?" << std::endl;
+    }
+    else {
+        auto const highestBidder = players[highestBidderIndex];
+        force_subtract_funds(highestBidderIndex, currentAuction->highestBid);
+        if (highestBidder.funds < 0) {
+            force_give_deed(highestBidderIndex, currentAuction->property);
+        }
+        else {
+            currentAuction = {};
+        }
+        resolve_game_state();
+    }
+}
+
+void GameState::queue_auction(Property property) {
+    std::cout << "Auctioning property" << to_string (property) << std::endl;
+    currentAuction = Auction{};
+    // Determine order of auction
+    for (int i = get_next_player_index(activePlayerIndex); i != activePlayerIndex; i = get_next_player_index(i)) {
+        currentAuction->biddingOrder.push(i);
+    }
+    // Active player starts with a big of 0, so they go last
+    currentAuction->biddingOrder.push(activePlayerIndex);
+    currentAuction->highestBid = 0;
+    currentAuction->property = property;
+    propertiesPendingAuction.pop();
+    resolve_game_state();
 }

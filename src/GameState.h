@@ -1,18 +1,25 @@
+#pragma once
+
 #include"Cards.h"
 #include"Board.h"
 #include"Player.h"
 
 #include<map>
 #include<optional>
+#include<queue>
 #include<set>
 #include<vector>
 
 namespace monopoly
 {
     enum class TurnPhase {
-        WaitingForRoll,
+        WaitingForTradeOfferResponse,
+        WaitingForDebtSettlement,
+        WaitingForBids,
+        WaitingForTrade,
+        WaitingForAcquisitionManagement,
         WaitingForBuyPropertyInput,
-        Auction,
+        WaitingForRoll,
         WaitingForTurnEnd,
     };
 
@@ -20,7 +27,7 @@ namespace monopoly
         switch (turnPhase) {
         case TurnPhase::WaitingForRoll: return "WaitingForRoll";
         case TurnPhase::WaitingForBuyPropertyInput: return "WaitingForBuyPropertyInput";
-        case TurnPhase::Auction: return "Auction";
+        case TurnPhase::WaitingForBids: return "Auction";
         case TurnPhase::WaitingForTurnEnd: return "WaitingForTurnEnd";
         }
         return "N/A";
@@ -51,6 +58,101 @@ namespace monopoly
         }
     };
 
+    // Auction minigame
+    //
+    // The rules for auctions are not well-defined by the official rules of
+    // monopoly, but this is how it is implemented here:
+    // - Starting bid is $0 for the player who either (depending on the
+    // circumstances leading to the auction)
+    //   - landed on the unowned property being auctioned
+    //   - is next in player order from the bankrupted player who is having
+    //   their deeds auctioned off
+    // - Bids continue in player order, players can either:
+    //   - Bid a dollar amount greater than the previous bid
+    //   - Decline to bid. By declining you remove yourself from the auction
+    // - Bids may be for any dollar amount over the previous bid
+    // - After all but one player has declined to bid, the remaining player
+    // must pay the bank the bid amount; liquidating assets as necesary under
+    // threat of bankruptcy
+    // - After the auction is completed
+    //   - If by winning the auction a player goes bankrupt, all of their
+    //   property is auctioned off, followed by the property causing the
+    //   bankruptcy
+    //  - If the winning bidder pays the bid price
+    //    - They receive the property
+    //    - If the received property is mortgaged, they must either immediately
+    //    unmortgage it or pay a 10% penalty (which can bankrupt the player!)
+
+    struct Auction
+    {
+        Property property;
+        int highestBid;
+        std::queue<int> biddingOrder; // front is the next bidder's player index, back is the recent (highest) bidder
+
+        bool operator== (Auction const& rhs) const {
+            return
+                highestBid == rhs.highestBid &&
+                biddingOrder == rhs.biddingOrder;
+        }
+        bool operator!= (Auction const& rhs) const { return operator!= (rhs); }
+    };
+
+    struct Debt {
+        int debtor;
+        std::optional<int> creditor;
+        int amount;
+
+        bool operator== (Debt const& rhs) const {
+            return
+                debtor == rhs.debtor &&
+                creditor == rhs.creditor &&
+                amount == rhs.amount;
+        }
+        bool operator!= (Debt const& rhs) const { return operator!= (rhs); }
+    };
+
+    struct Promise {
+        int cash;
+        std::set<Property> deeds;
+        std::set<DeckType> getOutOfJailFreeCards;
+
+        bool operator== (Promise const& rhs) const {
+            return
+                cash == rhs.cash &&
+                deeds == rhs.deeds &&
+                getOutOfJailFreeCards == rhs.getOutOfJailFreeCards;
+        }
+        bool operator!= (Promise const& rhs) const { return operator!= (rhs); }
+    };
+
+    struct Trade {
+        int offeringPlayer;
+        int consideringPlayer;
+        Promise offer;
+        Promise consideration;
+
+        bool operator== (Trade const& rhs) const {
+            return
+                offeringPlayer == rhs.offeringPlayer &&
+                consideringPlayer == rhs.consideringPlayer &&
+                offer == rhs.offer &&
+                consideration == rhs.consideration;
+        }
+        bool operator!= (Trade const& rhs) const { return operator!= (rhs); }
+    };
+
+    struct Acquisition {
+        int recipient;
+        std::set<Property> deeds;
+
+        bool operator== (Acquisition const& rhs) const {
+            return
+                recipient == rhs.recipient &&
+                deeds == rhs.deeds;
+        }
+        bool operator!= (Acquisition const& rhs) const { return operator!= (rhs); }
+    };
+
     class GameState
     {
     public:
@@ -61,7 +163,7 @@ namespace monopoly
         int get_players_remaining_count() const;
         Player get_player(int playerIndex) const;
         int get_active_player_index() const;
-        int get_next_player_index() const;
+        int get_next_player_index(int playerIndex = -1) const; // if -1, use activePlayerIndex
         int get_net_worth(int playerIndex) const;
         std::optional<int> get_property_owner_index(Property property) const;
         bool get_property_is_mortgaged(Property property) const;
@@ -70,21 +172,26 @@ namespace monopoly
         TurnPhase get_turn_phase() const;
         int get_building_level(Property property) const;
         std::map<Property, int> const& get_building_levels() const;
+        std::optional<Auction> get_current_auction() const;
         int calculate_rent(Property property) const;
-        bool waiting_on_prompt() const;
+
+        bool waiting_on_player_actions() const;
 
         std::pair<int, int> random_dice_roll();
         std::pair<int, int> get_last_dice_roll() const;
 
         bool check_if_player_is_allowed_to_roll(int actorIndex) const;
+        bool check_if_player_is_allowed_to_use_get_out_jail_free_card(int actorIndex) const;
+        bool check_if_player_is_allowed_to_pay_bail(int actorIndex) const;
         bool check_if_player_is_allowed_to_buy_property(int actorIndex) const;
         bool check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const;
+        bool check_if_player_is_allowed_to_bid(int actorIndex, int amount) const;
+        bool check_if_player_is_allowed_to_decline_bid(int actorIndex) const;
 
         void force_turn_start(int playerIndex);
-        void force_turn_continue();
         void force_turn_end();
 
         void force_funds(int playerIndex, int funds);
@@ -143,10 +250,12 @@ namespace monopoly
         void force_bankrupt(int debtorPlayerIndex);
         void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
 
-        void force_roll_prompt(int playerIndex);
         void force_property_offer_prompt(int playerIndex, Property property);
         void force_liquidate_prompt(int debtorPlayerIndex);
         void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex);
+
+        void force_bid(int playerIndex, int amount);
+        void force_decline_bid(int playerIndex);
 
         inline bool operator==(GameState const& rhs) const {
             return rng == rhs.rng &&
@@ -155,11 +264,18 @@ namespace monopoly
                 bank == rhs.bank &&
                 decks == rhs.decks &&
                 players == rhs.players &&
-                activePlayerIndex == rhs.activePlayerIndex &&
                 doublesStreak == rhs.doublesStreak &&
                 lastDiceRoll == rhs.lastDiceRoll &&
                 mortgagedProperties == rhs.mortgagedProperties &&
-                buildingLevels == rhs.buildingLevels;
+                buildingLevels == rhs.buildingLevels &&
+                pendingTradeAgreement == rhs.pendingTradeAgreement &&
+                pendingDebtSettlements == rhs.pendingDebtSettlements &&
+                currentAuction == rhs.currentAuction &&
+                propertiesPendingAuction == rhs.propertiesPendingAuction &&
+                pendingAcquisitions == rhs.pendingAcquisitions &&
+                pendingPurchaseDecision == rhs.pendingPurchaseDecision &&
+                pendingRoll == rhs.pendingRoll &&
+                activePlayerIndex == rhs.activePlayerIndex;
         }
         inline bool operator!=(GameState const& rhs) const {
             return !operator==(rhs);
@@ -171,6 +287,7 @@ namespace monopoly
         static Deck init_deck(GameSetup const& setup, DeckType deck_type);
         static std::map<DeckType, Deck> init_decks(GameSetup const& setup);
 
+
         std::mt19937 rng;
 
         int turn = 0;
@@ -179,11 +296,46 @@ namespace monopoly
         std::map<DeckType, Deck> decks;
 
         std::vector<Player> players;
-        int activePlayerIndex;
         int doublesStreak;
         std::pair<int, int> lastDiceRoll;
 
         std::set<Property> mortgagedProperties;
         std::map<Property, int> buildingLevels;
+
+        // Resolution order
+        //
+        // Most game states require some user interaction in order to resolve. Some
+        // pending events take priority over others (for example a player must roll
+        // the dice before they can end their turn).
+        void resolve_game_state();
+        void resolve_auction();
+        void queue_auction(Property property);
+        // The game is constantly trying to reach the "end state" which is a game
+        // over. Pending events are resolved in the following order:
+
+        // Handle trade offers
+        std::queue<Trade> pendingTradeAgreement;
+        // Handle debt settlements
+        std::queue<Debt> pendingDebtSettlements;
+        // Handle current auction
+        std::optional<Auction> currentAuction;
+        // Handle pending auctions
+        std::queue<Property> propertiesPendingAuction;
+        // Handle acquisition management (if a player received a property on another player's turn they are given this opportunity)
+        std::queue<Acquisition> pendingAcquisitions;
+        // Handle purchase decision
+        bool pendingPurchaseDecision;
+        // Handle roll input
+        bool pendingRoll;
+        // Handle end turn input
+        int activePlayerIndex;
+        // Game over (next player is active player)
+
+        // Through user action, pending events can be resolved and cleared, or
+        // higher priority events can be raised, until the end of the game. A
+        // pending event _can never_ depend on the resolution of an event lower in
+        // priority (for example you cannot trigger an auction to settle a debt).
+        // This rule allows game events to be resolved in a way that avoids loops
+        // and recursion.
     };
 }

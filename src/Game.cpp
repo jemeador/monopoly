@@ -22,7 +22,6 @@ Game::Game(IInterface* interface)
     start();
 }
 
-
 GameState Game::get_state() const {
     std::lock_guard<std::mutex> lock(stateMutex);
     return state;
@@ -103,11 +102,14 @@ void Game::process_input(int playerIndex, Input const& input) {
     else if (auto inputPtr = std::get_if<BidInput>(&input)) {
         process_bid_input(playerIndex, *inputPtr);
     }
+    else if (auto inputPtr = std::get_if<DeclineBidInput>(&input)) {
+        process_decline_bid_input(playerIndex, *inputPtr);
+    }
     else if (auto inputPtr = std::get_if<OfferTradeInput>(&input)) {
         process_offer_trade_input(playerIndex, *inputPtr);
     }
-    else if (auto inputPtr = std::get_if<CloseInput>(&input)) {
-        process_close_input(playerIndex, *inputPtr);
+    else if (auto inputPtr = std::get_if<EndTurnInput>(&input)) {
+        process_end_turn_input(playerIndex, *inputPtr);
     }
 }
 
@@ -185,18 +187,7 @@ void Game::process_sell_building_input(int playerIndex, SellBuildingInput const&
 }
 
 void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {
-    if (state.get_turn_phase() != TurnPhase::WaitingForRoll) {
-        return;
-    }
-    if (state.get_active_player_index() != playerIndex) {
-        return;
-    }
-    auto const& player = state.get_player(playerIndex);
-
-    if (player.turnsRemainingInJail == 0) {
-        return;
-    }
-    if (player.getOutOfJailFreeCards.empty()) {
+    if (!state.check_if_player_is_allowed_to_use_get_out_jail_free_card(playerIndex)) {
         return;
     }
 
@@ -204,18 +195,7 @@ void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOu
 }
 
 void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
-    if (state.get_turn_phase() != TurnPhase::WaitingForRoll) {
-        return;
-    }
-    if (state.get_active_player_index() != playerIndex) {
-        return;
-    }
-    auto const& player = state.get_player(playerIndex);
-
-    if (player.turnsRemainingInJail == 0) {
-        return;
-    }
-    if (player.funds < BailCost) {
+    if (!state.check_if_player_is_allowed_to_pay_bail(playerIndex)) {
         return;
     }
 
@@ -223,11 +203,25 @@ void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
 }
 
 void Game::process_bid_input(int playerIndex, BidInput const& input) {
+    if (!state.check_if_player_is_allowed_to_bid(playerIndex, input.amount)) {
+        return;
+    }
+
+    state.force_bid(playerIndex, input.amount);
 }
+
+void Game::process_decline_bid_input(int playerIndex, DeclineBidInput const& input) {
+    if (!state.check_if_player_is_allowed_to_decline_bid(playerIndex)) {
+        return;
+    }
+
+    state.force_decline_bid(playerIndex);
+}
+
 void Game::process_offer_trade_input(int playerIndex, OfferTradeInput const& input) {
 }
 
-void Game::process_close_input(int playerIndex, CloseInput const& input) {
+void Game::process_end_turn_input(int playerIndex, EndTurnInput const& input) {
     if (state.get_turn_phase() != TurnPhase::WaitingForTurnEnd) {
         return;
     }

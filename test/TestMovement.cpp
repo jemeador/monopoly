@@ -142,9 +142,12 @@ SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, o
 SCENARIO("Rolling random dice always yields a valid dice roll", "[movement]") {
     Test test;
 
-    for (auto i = 0; i < 50; ++i) {
+    // Increase the number of rolls for more thorough testing, it's a low nubmer in the interest of saving time
+    for (auto i = 0; i < 10; ++i) {
+        test.set_player_funds(Player::p1, 1500);
         test.set_active_player(Player::p1);
         test.roll();
+        test.buy_property();
         auto const dice = test.game.get_state().get_last_dice_roll();
         REQUIRE(1 <= dice.first);
         REQUIRE(dice.first <= 6);

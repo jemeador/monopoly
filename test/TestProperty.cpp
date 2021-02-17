@@ -4,14 +4,14 @@ using namespace monopoly;
 
 #include "catch2/catch.hpp"
 
-SCENARIO("Whenever you land on an unowned property you may buy that property at its printed price. If you don't buy it, it's auctioned.", "[property]") {
+SCENARIO("Whenever you land on an unowned property you may buy that property at its printed price. If you don't buy it, it's auctioned.", "[property, auction]") {
     Test test;
 
     GIVEN("The player has sufficient funds to buy Brown_2") {
         test.set_player_funds(Player::p1, price_of_property(Property::Brown_2));
 
         WHEN("the player lands on Brown_2") {
-            test.roll(1, 2);
+            test.land_on_space(Player::p1, Space::Brown_2);
 
             AND_WHEN("the choice to buy is confirmed") {
                 test.buy_property();
@@ -25,18 +25,64 @@ SCENARIO("Whenever you land on an unowned property you may buy that property at 
 
                 THEN("the property is auctioned") {
                     test.require_does_not_have_deed(Player::p1, Property::Brown_2);
+                    test.require_phase(TurnPhase::WaitingForBids);
                 }
             }
         }
     }
-    GIVEN("The player has insufficient funds to buy Brown_2") {
+    GIVEN("The player has insufficient funds to buy " + to_string (Property::Brown_2) + " but owns " + to_string (Property::Blue_2)) {
         test.set_player_funds(Player::p1, price_of_property(Property::Brown_2) - 1);
+        test.give_deed(Player::p1, Property::Blue_2);
 
         WHEN("the player lands on Brown_2") {
-            test.roll(1, 2);
+            test.land_on_space(Player::p1, Space::Brown_2);
 
-            THEN("the property is auctioned") {
-                test.require_does_not_have_deed(Player::p1, Property::Brown_2);
+            AND_WHEN("the choice to buy is confirmed") {
+                test.buy_property();
+
+                THEN("nothing happens") {
+                    test.require_does_not_have_deed(Player::p1, Property::Brown_2);
+                    test.require_phase(TurnPhase::WaitingForBuyPropertyInput);
+                }
+            }
+            AND_WHEN("the player gets a loan to afford the property by mortgaging") {
+                test.mortgage_property(Property::Blue_2);
+
+                AND_WHEN("the choice to buy is confirmed") {
+                    test.buy_property();
+
+                    THEN("the player receives the deed for the property") {
+                        test.require_has_deed(Player::p1, Property::Brown_2);
+                    }
+                }
+            }
+        }
+    }
+}
+
+SCENARIO("When a property is auctioned, players take turns bidding in turn order until all but one player declines to bid", "[property, auction]") {
+    Test test;
+    int const startingFunds = 500;
+
+    test.set_player_funds(Player::p1, startingFunds);
+    test.set_player_funds(Player::p2, startingFunds);
+    test.set_player_funds(Player::p3, startingFunds);
+    test.set_player_funds(Player::p4, startingFunds);
+
+    auto const property = Property::Blue_2;
+    auto const space = property_to_space (Property::Blue_2);
+    GIVEN("An auction starts as a result of a player landing on " + to_string(property) + " and declining to buy it") {
+        test.land_on_space(Player::p1, space);
+        test.auction_property();
+
+        THEN("the highest bid becomes $0 with the property going to Player 1") {
+            test.require_highest_bid(Player::p1, 0);
+        }
+        WHEN("player 2 bids $1") {
+            test.bid(Player::p2, 1);
+
+            THEN("the highest bid becomes $1 with the property going to Player 2") {
+                test.require_highest_bid(Player::p2, 1);
             }
         }
     }
