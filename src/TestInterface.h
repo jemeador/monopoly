@@ -42,19 +42,9 @@ namespace monopoly
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, MortgagePropertiesInput{ {property} } });
         }
 
-        void mortgage_properties(int playerIndex, std::set<Property> properties) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, MortgagePropertiesInput{ properties } });
-        }
-
         void unmortgage_property(int playerIndex, Property property) {
             std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, UnmortgagePropertiesInput{ {property} } });
-        }
-
-        void unmortgage_properties(int playerIndex, std::set<Property> properties) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, UnmortgagePropertiesInput{ properties } });
         }
 
         void buy_building(int playerIndex, Property property) {
@@ -80,6 +70,11 @@ namespace monopoly
         void bid(int playerIndex, int bid) {
             std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, BidInput {bid} });
+        }
+
+        void decline_bid(int playerIndex) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, DeclineBidInput {} });
         }
 
         bool has_input() {

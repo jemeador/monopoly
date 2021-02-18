@@ -82,24 +82,13 @@ namespace monopoly
             interface.auction_property(pi);
             game.wait_for_processing();
         }
-        inline void mortgage_property(Property property) {
-            auto const pi = game.get_state().get_active_player_index();
-            interface.mortgage_property(pi, property);
-            game.wait_for_processing();
-        }
-        inline void mortgage_properties(std::set<Property> properties) {
-            auto const pi = game.get_state().get_active_player_index();
-            interface.mortgage_properties(pi, properties);
+        inline void mortgage_property(int playerIndex, Property property) {
+            interface.mortgage_property(playerIndex, property);
             game.wait_for_processing();
         }
         inline void unmortgage_property(Property property) {
             auto const pi = game.get_state().get_active_player_index();
             interface.unmortgage_property(pi, property);
-            game.wait_for_processing();
-        }
-        inline void unmortgage_properties(std::set<Property> properties) {
-            auto const pi = game.get_state().get_active_player_index();
-            interface.unmortgage_properties(pi, properties);
             game.wait_for_processing();
         }
         inline void buy_building(Property property) {
@@ -124,6 +113,10 @@ namespace monopoly
         }
         inline void bid(int playerIndex, int bid) {
             interface.bid(playerIndex, bid);
+            game.wait_for_processing();
+        }
+        inline void decline_bid(int playerIndex) {
+            interface.decline_bid(playerIndex);
             game.wait_for_processing();
         }
 

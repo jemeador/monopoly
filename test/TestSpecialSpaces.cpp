@@ -42,7 +42,8 @@ SCENARIO("When a player lands on Income Tax, they pay the lesser of $200 or 10% 
             { Property::Blue_1, 2 },
             { Property::Blue_2, 3 },
             });
-        test.mortgage_properties({ Property::Railroad_1, Property::Railroad_2 });
+        test.mortgage_property(Player::p1, Property::Railroad_1);
+        test.mortgage_property(Player::p1, Property::Railroad_2);
 
         AND_GIVEN("player 1 has $21") {
             int const startingFunds = 21;

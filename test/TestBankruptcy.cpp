@@ -13,8 +13,8 @@ SCENARIO("When a player can't afford to pay a debt, they are eliminated", "[bank
         WHEN("player 1 lands on Boardwalk") {
             test.land_on_space(Player::p1, Space::Blue_2);
 
-            THEN("player 1 is bankrupted") {
-                test.require_eliminated(Player::p1, true);
+            THEN("player 1 must settle debts") {
+                test.require_phase(TurnPhase::WaitingForDebtSettlement);
             }
         }
     }
@@ -24,8 +24,8 @@ SCENARIO("When a player can't afford to pay a debt, they are eliminated", "[bank
         WHEN("player 1 lands on Luxury Tax") {
             test.land_on_space(Player::p1, Space::LuxuryTax);
 
-            THEN("player 1 is bankrupted") {
-                test.require_eliminated(Player::p1, true);
+            THEN("player 1 must settle debts") {
+                test.require_phase(TurnPhase::WaitingForDebtSettlement);
             }
         }
     }

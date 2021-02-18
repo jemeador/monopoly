@@ -46,7 +46,7 @@ SCENARIO("Whenever you land on an unowned property you may buy that property at 
                 }
             }
             AND_WHEN("the player gets a loan to afford the property by mortgaging") {
-                test.mortgage_property(Property::Blue_2);
+                test.mortgage_property(Player::p1, Property::Blue_2);
 
                 AND_WHEN("the choice to buy is confirmed") {
                     test.buy_property();
@@ -68,6 +68,7 @@ SCENARIO("When a property is auctioned, players take turns bidding in turn order
     test.set_player_funds(Player::p2, startingFunds);
     test.set_player_funds(Player::p3, startingFunds);
     test.set_player_funds(Player::p4, startingFunds);
+    test.give_deed(Player::p2, Property::Blue_1);
 
     auto const property = Property::Blue_2;
     auto const space = property_to_space (Property::Blue_2);
@@ -83,6 +84,89 @@ SCENARIO("When a property is auctioned, players take turns bidding in turn order
 
             THEN("the highest bid becomes $1 with the property going to Player 2") {
                 test.require_highest_bid(Player::p2, 1);
+            }
+            AND_WHEN("player 3 bids 0") {
+                test.bid(Player::p3, 0);
+
+                THEN("the bid is ignored and the highest bid remains $1 with the property going to Player 2") {
+                    test.require_highest_bid(Player::p2, 1);
+                }
+            }
+            AND_WHEN("player 4 bids out of turn") {
+                test.bid(Player::p4, 1000000);
+
+                THEN("the bid is ignored and the highest bid remains $1 with the property going to Player 2") {
+                    test.require_highest_bid(Player::p2, 1);
+                }
+            }
+            AND_WHEN("player 3 bids $10") {
+                test.bid(Player::p3, 10);
+
+                THEN("the highest bid becomes $10 with the property going to Player 3") {
+                    test.require_highest_bid(Player::p3, 10);
+                }
+            }
+            AND_WHEN("player 3 and 4 decline to bid") {
+                test.decline_bid(Player::p3);
+                test.decline_bid(Player::p4);
+
+                THEN("the highest bid remains $1 with the property going to Player 2") {
+                    test.require_highest_bid(Player::p2, 1);
+                }
+                AND_WHEN("player 1 declines to bid") {
+                    test.decline_bid(Player::p1);
+
+                    THEN("player 2 is awarded the property") {
+                        test.require_funds(Player::p2, startingFunds - 1);
+                        test.require_has_deed(Player::p2, property);
+                    }
+                }
+                AND_WHEN("there is a bit more back and forth") {
+                    test.bid(Player::p1, 100);
+                    test.bid(Player::p2, 200);
+                    test.bid(Player::p1, 225);
+                    test.bid(Player::p2, 300);
+                    test.bid(Player::p1, 301);
+                    test.bid(Player::p2, 400);
+                    test.bid(Player::p1, 490);
+                    test.bid(Player::p2, 499);
+
+                    AND_WHEN("player 1 tries to bid more than their liquid asset value") {
+                        test.bid(Player::p1, 501);
+
+                        THEN("nothing happens, the highest bid remains 500 going to player 2") {
+                            test.require_highest_bid(Player::p2, 499);
+                        }
+                    }
+                    AND_WHEN("the bid goes over what player 1 can afford ") {
+                        test.bid(Player::p1, 500);
+                        test.bid(Player::p2, 501);
+
+                        THEN("player 1 is removed from the auction, but player 2 owes a debt before he gets the proprety") {
+                            test.require_funds(Player::p2, -1);
+                            test.require_does_not_have_deed(Player::p2, property);
+                            test.require_phase(TurnPhase::WaitingForDebtSettlement);
+                        }
+                        AND_WHEN("player 2 mortgages his property") {
+                            test.mortgage_property(Player::p2, Property::Blue_1);
+
+                            THEN("player 2 gets the deed") {
+                                test.require_funds(Player::p2, startingFunds - 501 + mortgage_value_of_property (Property::Blue_1));
+                                test.require_has_deed(Player::p2, property);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        WHEN("player 2, 3, and 4 decline to bid") {
+            test.decline_bid(Player::p2);
+            test.decline_bid(Player::p3);
+            test.decline_bid(Player::p4);
+
+            THEN("player 1 is awarded the property for free") {
+                test.require_funds(Player::p1, startingFunds);
+                test.require_has_deed(Player::p1, property);
             }
         }
     }
@@ -233,7 +317,7 @@ SCENARIO("Players can receive loans from the bank by mortgaging properties in an
 
         WHEN("player 1 mortgages " + to_string(p1Property)) {
             test.set_active_player(Player::p1);
-            test.mortgage_property(p1Property);
+            test.mortgage_property(Player::p1, p1Property);
 
             THEN("player 1 gets the mortgage value of the property from the bank") {
                 test.require_funds(Player::p1, startingFunds + mortgage_value_of_property(p1Property));
@@ -242,7 +326,7 @@ SCENARIO("Players can receive loans from the bank by mortgaging properties in an
         }
         WHEN("player 1 tries to mortgage " + to_string(p2Property)) {
             test.set_active_player(Player::p1);
-            test.mortgage_property(p2Property);
+            test.mortgage_property(Player::p1, p2Property);
 
             THEN("nothing happens") {
                 test.require_funds(Player::p1, startingFunds);
@@ -255,7 +339,7 @@ SCENARIO("Players can receive loans from the bank by mortgaging properties in an
 
             WHEN("player 1 tries to mortgage " + to_string(p1Property)) {
                 test.set_active_player(Player::p1);
-                test.mortgage_property(p1Property);
+                test.mortgage_property(Player::p1, p1Property);
 
                 THEN("nothing happens") {
                     test.require_funds(Player::p1, startingFunds);
@@ -266,11 +350,13 @@ SCENARIO("Players can receive loans from the bank by mortgaging properties in an
     }
     GIVEN("Player 1 owns all of the " + to_string(p1Group) + " properties, but they are mortgaged") {
         test.give_deeds(Player::p1, { properties_in_group(p1Group) });
-        test.mortgage_properties(properties_in_group(p1Group));
+        for (auto property : properties_in_group(p1Group)) {
+            test.mortgage_property(Player::p1, property);
+        }
         test.set_player_funds(Player::p1, startingFunds);
 
         WHEN("player 1 tries to mortgage an already mortgaged " + to_string(p1Property)) {
-            test.mortgage_property(p1Property);
+            test.mortgage_property(Player::p1, p1Property);
 
             THEN("nothing happens") {
                 test.require_funds(Player::p1, startingFunds);
@@ -289,7 +375,8 @@ SCENARIO("Players must pay off mortgaged properties before they can improve prop
 
     GIVEN("Player 1 owns all of the " + to_string(p1Group) + " properties, but they are mortgaged") {
         test.give_deeds(Player::p1, { properties_in_group(p1Group) });
-        test.mortgage_properties(properties_in_group(p1Group));
+        for (auto proprety : properties_in_group(p1Group))
+            test.mortgage_property(Player::p1, proprety);
         test.set_player_funds(Player::p1, startingFunds);
 
         WHEN("player 1 unmortgages " + to_string(p1Property)) {
@@ -442,7 +529,7 @@ SCENARIO("Players may buy/sell buildings (evenly) on real estate properties if t
 
     GIVEN("Player 1 owns all of the " + to_string(p1Group) + " properties, but " + to_string(Property::Orange_1) + " is mortgaged") {
         test.give_deeds(Player::p1, { properties_in_group(p1Group) });
-        test.mortgage_property(Property::Orange_1);
+        test.mortgage_property(Player::p1, Property::Orange_1);
         test.set_player_funds(Player::p1, startingFunds);
 
         auto const p1Property = Property::Orange_2;

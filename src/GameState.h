@@ -70,14 +70,13 @@ namespace monopoly
     // - Bids continue in player order, players can either:
     //   - Bid a dollar amount greater than the previous bid
     //   - Decline to bid. By declining you remove yourself from the auction
-    // - Bids may be for any dollar amount over the previous bid
+    // - Bids may be for any dollar amount over the previous bid, not exceeding the player's liquid assets sum value plus closing costs
     // - After all but one player has declined to bid, the remaining player
-    // must pay the bank the bid amount; liquidating assets as necesary under
-    // threat of bankruptcy
+    // must pay the bank the bid amount; liquidating assets as necesary
     // - After the auction is completed
-    //   - If by winning the auction a player goes bankrupt, all of their
-    //   property is auctioned off, followed by the property causing the
-    //   bankruptcy
+    //   - If by winning the auction a player goes bankrupt (or they resign), all of their
+    //   property is auctioned off, the property causing the
+    //   bankruptcy remains in the pool of assets to auction
     //  - If the winning bidder pays the bid price
     //    - They receive the property
     //    - If the received property is mortgaged, they must either immediately
@@ -165,6 +164,7 @@ namespace monopoly
         int get_active_player_index() const;
         int get_next_player_index(int playerIndex = -1) const; // if -1, use activePlayerIndex
         int get_net_worth(int playerIndex) const;
+        int get_liquid_assets_value(int playerIndex) const;
         std::optional<int> get_property_owner_index(Property property) const;
         bool get_property_is_mortgaged(Property property) const;
         int get_properties_owned_in_group(Property property) const;
@@ -174,6 +174,7 @@ namespace monopoly
         std::map<Property, int> const& get_building_levels() const;
         std::optional<Auction> get_current_auction() const;
         int calculate_rent(Property property) const;
+        int calculate_closing_costs_on_sale(Property property) const;
 
         bool waiting_on_player_actions() const;
 
@@ -251,8 +252,8 @@ namespace monopoly
         void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
 
         void force_property_offer_prompt(int playerIndex, Property property);
-        void force_liquidate_prompt(int debtorPlayerIndex);
-        void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex);
+        void force_liquidate_prompt(int debtorPlayerIndex, int amount);
+        void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount);
 
         void force_bid(int playerIndex, int amount);
         void force_decline_bid(int playerIndex);
@@ -308,7 +309,9 @@ namespace monopoly
         // pending events take priority over others (for example a player must roll
         // the dice before they can end their turn).
         void resolve_game_state();
+        void resolve_debt_settlements();
         void resolve_auction();
+        void resolve_auction_sale();
         void queue_auction(Property property);
         // The game is constantly trying to reach the "end state" which is a game
         // over. Pending events are resolved in the following order:
@@ -319,6 +322,8 @@ namespace monopoly
         std::queue<Debt> pendingDebtSettlements;
         // Handle current auction
         std::optional<Auction> currentAuction;
+        // Handle closing auction
+        std::optional<std::pair<int, Property>> pendingAuctionSale;
         // Handle pending auctions
         std::queue<Property> propertiesPendingAuction;
         // Handle acquisition management (if a player received a property on another player's turn they are given this opportunity)

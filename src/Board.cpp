@@ -65,6 +65,9 @@ int monopoly::price_of_property(Property p) {
 int monopoly::price_per_house_on_property(Property p) {
     return real_estate_table_lookup(p, DeedField::PricePerHouse);
 }
+int monopoly::sell_price_per_house_on_property(Property p) {
+    return price_per_house_on_property(p) / 2;
+}
 int monopoly::rent_price_of_real_estate(Property p) {
     return real_estate_table_lookup(p, DeedField::Rent);
 }

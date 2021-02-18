@@ -201,6 +201,7 @@ namespace monopoly
 
     int price_of_property(Property p);
     int price_per_house_on_property(Property p);
+    int sell_price_per_house_on_property(Property p);
     int rent_price_of_real_estate(Property p);
     int rent_price_of_improved_real_estate(Property p, int buildingLevel);
     int rent_price_of_railroad(int ownedRailroads);
