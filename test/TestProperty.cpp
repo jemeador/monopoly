@@ -543,3 +543,120 @@ SCENARIO("Players may buy/sell buildings (evenly) on real estate properties if t
         }
     }
 }
+
+SCENARIO("Players cannot build if there aren't enough buildings in the bank to place the new buildings", "[property, building]") {
+    Test test;
+    int const startingFunds = 1500;
+
+    GIVEN("There are 32 houses on the board and 1 hotel") {
+        test.give_deeds(Player::p1, properties_in_group(PropertyGroup::Orange));
+        test.give_deeds(Player::p2, properties_in_group(PropertyGroup::Red));
+        test.give_deeds(Player::p3, properties_in_group(PropertyGroup::Yellow));
+        test.give_deeds(Player::p4, properties_in_group(PropertyGroup::Green));
+        test.set_buildings({
+            {Property::Orange_1, 5},
+            {Property::Orange_2, 4},
+            {Property::Orange_3, 4},
+            {Property::Red_1, 4},
+            {Property::Red_2, 4},
+            {Property::Red_3, 4},
+            {Property::Yellow_1, 2},
+            {Property::Yellow_2, 2},
+            {Property::Yellow_3, 2},
+            {Property::Green_1, 2},
+            {Property::Green_2, 2},
+            {Property::Green_3, 2},
+            });
+
+        WHEN("player 4 tries to buy a house") {
+            test.set_active_player(Player::p4);
+            test.buy_building(Property::Green_1);
+
+            THEN("nothing happens") {
+                test.require_building_level(Property::Green_1, 2);
+            }
+        }
+        WHEN("player 1 tries to sell a hotel") {
+            test.set_active_player(Player::p1);
+            test.sell_building(Property::Orange_1);
+
+            THEN("nothing happens! Player 1 can't replace it evenly with houses!") {
+                test.require_building_level(Property::Orange_1, 5);
+            }
+        }
+        WHEN("player 2 sells 3 houses") {
+            test.set_active_player(Player::p2);
+            test.sell_building(Property::Red_1);
+            test.sell_building(Property::Red_2);
+            test.sell_building(Property::Red_3);
+
+            AND_WHEN("player 1 tries to sell a hotel") {
+                test.set_active_player(Player::p1);
+                test.sell_building(Property::Orange_1);
+
+                THEN("nothing happens! Player 1 still can't replace it evenly with houses!") {
+                    test.require_building_level(Property::Orange_1, 5);
+                }
+            }
+            AND_WHEN("player 2 sells one more house") {
+                test.set_active_player(Player::p2);
+                test.sell_building(Property::Red_1);
+
+                AND_WHEN("player 1 tries to sell a hotel") {
+                    test.set_active_player(Player::p1);
+                    test.sell_building(Property::Orange_1);
+
+                    THEN("the hotel is sold") {
+                        test.require_building_level(Property::Orange_1, 4);
+                    }
+                }
+            }
+        }
+        WHEN("player 1 sells all buildings in the group") { // ouch!
+            test.set_active_player(Player::p1);
+            test.set_player_funds(Player::p1, startingFunds);
+            test.sell_all_buildings(PropertyGroup::Orange);
+
+            THEN("player 1 receives payment and all buildings are sold") {
+                auto const price = (5 + 4 + 4) * sell_price_per_house_on_property(Property::Orange_1);
+                test.require_funds(Player::p1, startingFunds + price);
+                test.require_building_level(Property::Orange_1, 0);
+                test.require_building_level(Property::Orange_2, 0);
+                test.require_building_level(Property::Orange_3, 0);
+            }
+        }
+    }
+    GIVEN("There are 12 hotels on the board") {
+        test.give_deeds(Player::p1, properties_in_group(PropertyGroup::Yellow));
+        test.give_deeds(Player::p1, properties_in_group(PropertyGroup::Orange));
+        test.give_deeds(Player::p2, properties_in_group(PropertyGroup::Red));
+        test.give_deeds(Player::p3, properties_in_group(PropertyGroup::LightBlue));
+        test.give_deeds(Player::p4, properties_in_group(PropertyGroup::Green));
+        test.give_deeds(Player::p4, properties_in_group(PropertyGroup::Blue));
+        test.set_buildings({
+            {Property::LightBlue_1, 5},
+            {Property::LightBlue_2, 5},
+            {Property::LightBlue_3, 5},
+            {Property::Orange_1, 5},
+            {Property::Orange_2, 5},
+            {Property::Orange_3, 5},
+            {Property::Red_1, 5},
+            {Property::Red_2, 5},
+            {Property::Red_3, 5},
+            {Property::Yellow_1, 5},
+            {Property::Yellow_2, 5},
+            {Property::Yellow_3, 5},
+            {Property::Blue_1, 4},
+            {Property::Blue_2, 4},
+            });
+
+        WHEN("player 4 tries to buy a hotel") {
+            test.set_active_player(Player::p4);
+            test.buy_building(Property::Blue_1);
+
+            THEN("nothing happens") {
+                test.require_building_level(Property::Green_1, 0);
+            }
+        }
+    }
+}

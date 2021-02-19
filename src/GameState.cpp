@@ -355,7 +355,6 @@ bool GameState::check_if_player_is_allowed_to_buy_building(int actorIndex, Prope
     if (get_controlling_player_index () != actorIndex) {
         return false;
     }
-
     if (players[actorIndex].funds < price_per_house_on_property(property)) {
         return false;
     }
@@ -374,6 +373,13 @@ bool GameState::check_if_player_is_allowed_to_buy_building(int actorIndex, Prope
         if (get_property_is_mortgaged(p)) {
             return false;
         }
+    }
+
+    if (currentBuildingLevel + 1 < HotelLevel && bank.houses == 0) {
+        return false;
+    }
+    if (currentBuildingLevel + 1 == HotelLevel && bank.hotels == 0) {
+        return false;
     }
     return true;
 }
@@ -401,7 +407,28 @@ bool GameState::check_if_player_is_allowed_to_sell_building(int actorIndex, Prop
             return false;
         }
     }
+
+    if (currentBuildingLevel == HotelLevel && bank.houses < HotelLevel - 1) {
+        return false;
+    }
     return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_sell_all_buildings(int actorIndex, PropertyGroup group) const {
+    if (phase == TurnPhase::WaitingForBids) {
+        return false;
+    }
+    if (get_controlling_player_index () != actorIndex) {
+        return false;
+    }
+    if (get_min_building_level_in_group(group) == 0) {
+        return false;
+    }
+    for (auto p : properties_in_group(group)) {
+        if (get_property_owner_index(p) != actorIndex) {
+            return false;
+        }
+    }
 }
 
 bool GameState::check_if_player_is_allowed_to_bid(int actorIndex, int amount) const {
@@ -798,24 +825,81 @@ void GameState::force_set_mortgaged(Property property, bool mortgaged) {
 }
 
 void GameState::force_buy_building(Property property) {
-    buildingLevels[property]++;
-    assert(buildingLevels[property] <= HotelLevel);
+    force_add_building(property);
     auto const ownerOpt = get_property_owner_index(property);
     assert(ownerOpt);
     force_subtract_funds(*ownerOpt, price_per_house_on_property(property));
 }
 
 void GameState::force_sell_building(Property property) {
-    buildingLevels[property]--;
-    assert(buildingLevels[property] >= 0);
+    force_remove_building(property);
     auto const ownerOpt = get_property_owner_index(property);
     assert(ownerOpt);
     force_add_funds(*ownerOpt, sell_price_per_house_on_property(property));
     resolve_game_state();
 }
+
+void GameState::force_sell_all_buildings(PropertyGroup group) { 
+    auto const properties = properties_in_group(group);
+    for (auto property : properties) {
+        auto &buildingLevel = buildingLevels[property];
+        auto const ownerOpt = get_property_owner_index(property);
+        assert(ownerOpt);
+        if (!ownerOpt)
+            continue;
+        force_add_funds(*ownerOpt, buildingLevel * sell_price_per_house_on_property(property));
+        if (buildingLevel == HotelLevel) {
+            bank.hotels += 1;
+        }
+        if (buildingLevel < HotelLevel) {
+            bank.houses += buildingLevel;
+        }
+        buildingLevel = 0;
+    }
+    resolve_game_state();
+}
+
+void GameState::force_add_building(Property property) {
+    auto& buildingLevel = buildingLevels[property];
+    ++buildingLevel;
+    if (buildingLevel < HotelLevel) {
+        assert(bank.houses > 0);
+        bank.houses -= 1;
+    }
+    if (buildingLevel == HotelLevel) {
+        assert(bank.hotels > 0);
+        bank.hotels -= 1;
+        bank.houses += HotelLevel - 1;
+    }
+    assert(buildingLevel <= HotelLevel);
+}
+
+void GameState::force_remove_building(Property property) {
+    auto& buildingLevel = buildingLevels[property];
+    if (buildingLevel < HotelLevel) {
+        bank.houses += 1;
+    }
+    if (buildingLevel == HotelLevel) {
+        assert(bank.houses > 0);
+        bank.hotels += 1;
+        bank.houses -= HotelLevel - 1;
+    }
+    --buildingLevel;
+    assert(buildingLevel >= 0);
+}
+
 void GameState::force_set_building_levels(std::map<Property, int> newBuildingLevels) {
-    newBuildingLevels.insert(buildingLevels.begin(), buildingLevels.end());
-    swap(newBuildingLevels, buildingLevels);
+    Property property;
+    int desiredBuildingLevel;
+    for (auto const pair : newBuildingLevels) {
+        std::tie(property, desiredBuildingLevel) = pair;
+        while (get_building_level(property) > desiredBuildingLevel) {
+            force_remove_building(property);
+        }
+        while (get_building_level(property) < desiredBuildingLevel) {
+            force_add_building(property);
+        }
+    }
 }
 
 void GameState::force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
@@ -871,8 +955,11 @@ void GameState::force_pay_bail(int playerIndex) {
 
 void GameState::force_bankrupt(int debtorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
-    // sell buildings
-    // sell houses
+    for (auto deed : debtor.deeds) {
+        if (get_building_level(deed) > 0) {
+            force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
+        }
+    }
     std::set<Property> deedsToAuction;
     swap(deedsToAuction, debtor.deeds);
     for (auto property : debtor.deeds) {

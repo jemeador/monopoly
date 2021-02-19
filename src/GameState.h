@@ -37,10 +37,15 @@ namespace monopoly
 
     struct Bank
     {
+        int houses = 32;
+        int hotels = 12;
         std::set<Property> deeds = all_properties();
 
         inline bool operator==(Bank const& rhs) const {
-            return deeds == rhs.deeds;
+            return
+                houses == rhs.houses &&
+                hotels == rhs.hotels &&
+                deeds == rhs.deeds;
         }
         inline bool operator!=(Bank const& rhs) const {
             return !operator==(rhs);
@@ -197,6 +202,7 @@ namespace monopoly
         bool check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const;
+        bool check_if_player_is_allowed_to_sell_all_buildings(int actorIndex, PropertyGroup property) const;
         bool check_if_player_is_allowed_to_bid(int actorIndex, int amount) const;
         bool check_if_player_is_allowed_to_decline_bid(int actorIndex) const;
         bool check_if_player_is_allowed_to_decline_trade(int actorIndex) const;
@@ -244,11 +250,13 @@ namespace monopoly
 
         void force_mortgage(Property property);
         void force_unmortgage(Property property);
+        void force_set_mortgaged(Property property, bool mortgaged);
 
         void force_buy_building(Property property);
         void force_sell_building(Property property);
-
-        void force_set_mortgaged(Property property, bool mortgaged);
+        void force_sell_all_buildings(PropertyGroup group);
+        void force_add_building(Property property);
+        void force_remove_building(Property property);
         void force_set_building_levels(std::map<Property, int> newBuildingLevels);
 
         void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);

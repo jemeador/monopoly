@@ -91,6 +91,9 @@ void Game::process_input(int playerIndex, Input const& input) {
     else if (auto inputPtr = std::get_if<SellBuildingInput>(&input)) {
         process_sell_building_input(playerIndex, *inputPtr);
     }
+    else if (auto inputPtr = std::get_if<SellAllBuildingsInput>(&input)) {
+        process_sell_all_buildings_input(playerIndex, *inputPtr);
+    }
     else if (auto inputPtr = std::get_if<UnmortgagePropertiesInput>(&input)) {
         process_unmortgage_properties_input(playerIndex, *inputPtr);
     }
@@ -191,6 +194,14 @@ void Game::process_sell_building_input(int playerIndex, SellBuildingInput const&
     }
 
     state.force_sell_building(input.property);
+}
+
+void Game::process_sell_all_buildings_input(int playerIndex, SellAllBuildingsInput const& input) {
+    if (!state.check_if_player_is_allowed_to_sell_all_buildings(playerIndex, input.group)) {
+        return;
+    }
+
+    state.force_sell_all_buildings(input.group);
 }
 
 void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {

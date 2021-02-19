@@ -57,6 +57,11 @@ namespace monopoly
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, SellBuildingInput{ property } });
         }
 
+        void sell_all_buildings(int playerIndex, PropertyGroup group) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, SellAllBuildingsInput{ group } });
+        }
+
         void use_get_out_of_jail_free_card(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {} });

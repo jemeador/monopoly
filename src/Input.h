@@ -35,6 +35,12 @@ namespace monopoly {
         Property property;
     };
 
+    // Sell ALL buildings in a property group. This may be necessary if there aren't enough houses to replace hotels.
+    // You may do this at any time on your turn between actions, or when you receive property from another player
+    struct SellAllBuildingsInput {
+        PropertyGroup group;
+    };
+
     // Unmortgage real estate properties.
     // You may do this at any time on your turn between actions, or when prompted
     struct UnmortgagePropertiesInput {
@@ -90,6 +96,7 @@ namespace monopoly {
         BuyPropertyInput,
         BuyBuildingInput,
         SellBuildingInput,
+        SellAllBuildingsInput,
         UnmortgagePropertiesInput,
         MortgagePropertiesInput,
         UseGetOutOfJailFreeCardInput,

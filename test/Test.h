@@ -101,6 +101,11 @@ namespace monopoly
             interface.sell_building(pi, property);
             game.wait_for_processing();
         }
+        inline void sell_all_buildings(PropertyGroup group) {
+            auto const pi = game.get_state().get_active_player_index();
+            interface.sell_all_buildings(pi, group);
+            game.wait_for_processing();
+        }
         inline void pay_bail() {
             auto const pi = game.get_state().get_active_player_index();
             interface.pay_bail(pi);
