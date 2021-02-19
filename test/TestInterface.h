@@ -77,6 +77,16 @@ namespace monopoly
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, DeclineBidInput {} });
         }
 
+        void propose_trade(Trade trade) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ trade.offeringPlayer, OfferTradeInput {trade.offer, trade.consideringPlayer, trade.consideration} });
+        }
+
+        void decline_trade(int playerIndex) {
+            std::lock_guard<std::mutex> lock(inputMutex);
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, DeclineTradeInput {} });
+        }
+
         bool has_input() {
             std::lock_guard<std::mutex> lock(inputMutex);
             return !inputBuffer.empty();

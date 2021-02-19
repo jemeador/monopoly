@@ -119,6 +119,14 @@ namespace monopoly
             interface.decline_bid(playerIndex);
             game.wait_for_processing();
         }
+        inline void propose_trade(Trade trade) {
+            interface.propose_trade(trade);
+            game.wait_for_processing();
+        }
+        inline void decline_trade(int playerIndex) {
+            interface.decline_trade(playerIndex);
+            game.wait_for_processing();
+        }
 
         inline void require_eliminated(int playerIndex, bool eliminated) {
             REQUIRE(game.get_state().get_player(playerIndex).eliminated == eliminated);

@@ -16,22 +16,11 @@ namespace monopoly
         WaitingForTradeOfferResponse,
         WaitingForDebtSettlement,
         WaitingForBids,
-        WaitingForTrade,
         WaitingForAcquisitionManagement,
         WaitingForBuyPropertyInput,
         WaitingForRoll,
         WaitingForTurnEnd,
     };
-
-    inline char const* to_string(TurnPhase turnPhase) {
-        switch (turnPhase) {
-        case TurnPhase::WaitingForRoll: return "WaitingForRoll";
-        case TurnPhase::WaitingForBuyPropertyInput: return "WaitingForBuyPropertyInput";
-        case TurnPhase::WaitingForBids: return "Auction";
-        case TurnPhase::WaitingForTurnEnd: return "WaitingForTurnEnd";
-        }
-        return "N/A";
-    }
 
     struct GameSetup
     {
@@ -139,6 +128,19 @@ namespace monopoly
         }
         bool operator!= (Trade const& rhs) const { return operator!= (rhs); }
     };
+    
+    inline Trade reciprocal_trade(Trade t) {
+        return {
+            t.consideringPlayer,
+            t.offeringPlayer,
+            t.consideration,
+            t.offer,
+        };
+    }
+
+    inline bool trades_are_reciprocal(Trade t1, Trade t2) {
+        return t1 == reciprocal_trade(t2);
+    }
 
     struct Acquisition {
         int recipient;
@@ -161,10 +163,10 @@ namespace monopoly
         int get_player_count() const;
         int get_players_remaining_count() const;
         Player get_player(int playerIndex) const;
-        int get_active_player_index() const;
+        int get_active_player_index() const; // it's the active player's turn
+        int get_controlling_player_index() const; // the game is waiting on input from the controlling player
         int get_next_player_index(int playerIndex = -1) const; // if -1, use activePlayerIndex
         int get_net_worth(int playerIndex) const;
-        int get_liquid_assets_value(int playerIndex) const;
         std::optional<int> get_property_owner_index(Property property) const;
         bool get_property_is_mortgaged(Property property) const;
         int get_properties_owned_in_group(Property property) const;
@@ -175,6 +177,10 @@ namespace monopoly
         std::optional<Auction> get_current_auction() const;
         int calculate_rent(Property property) const;
         int calculate_closing_costs_on_sale(Property property) const;
+        int calculate_liquid_assets_value(int playerIndex) const;
+        int calculate_liquid_value_of_deeds(std::set<Property> deeds) const;
+        int calculate_liquid_value_of_buildings(std::set<Property> deeds) const;
+        int calculate_liquid_value_of_promise(Promise promise) const;
 
         bool waiting_on_player_actions() const;
 
@@ -191,6 +197,10 @@ namespace monopoly
         bool check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_bid(int actorIndex, int amount) const;
         bool check_if_player_is_allowed_to_decline_bid(int actorIndex) const;
+        bool check_if_player_is_allowed_to_decline_trade(int actorIndex) const;
+        bool check_if_trade_is_valid(Trade trade) const;
+        bool check_if_player_can_fulfill_promise(int playerIndex, Promise promise) const;
+        bool check_if_player_can_pay_closing_costs(int playerIndex, Promise lostAssets, Promise gainedAssets) const;
 
         void force_turn_start(int playerIndex);
         void force_turn_end();
@@ -227,8 +237,8 @@ namespace monopoly
 
         void force_give_deed(int playerIndex, Property property);
         void force_give_deeds(int playerIndex, std::set<Property> properties);
-        void force_transfer_deed(std::set<Property>& from, std::set<Property>& to, Property deed);
-        void force_transfer_deeds(std::set<Property>& from, std::set<Property>& to, std::set<Property> deeds);
+        void force_transfer_deed(int fromPlayerIndex, int toPlayerIndex, Property deed);
+        void force_transfer_deeds(int fromPlayerIndex, int toPlayerIndex, std::set<Property> deeds);
 
         void force_mortgage(Property property);
         void force_unmortgage(Property property);
@@ -241,7 +251,7 @@ namespace monopoly
 
         void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
         void force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType);
-        void force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, int toPlayerIndex);
+        void force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, int toPlayerIndex, std::set<DeckType> deckTypes = {DeckType::Chance, DeckType::CommunityChest});
         void force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType);
         void force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
         void force_return_get_out_of_jail_free_cards(int playerIndex);
@@ -258,6 +268,11 @@ namespace monopoly
         void force_bid(int playerIndex, int amount);
         void force_decline_bid(int playerIndex);
 
+        void force_offer_trade(Trade trade);
+        void force_decline_trade(int playerIndex);
+        void force_trade(Trade trade);
+        void force_transfer_promise(int fromPlayerIndex, int toPlayerIndex, Promise promise);
+
         inline bool operator==(GameState const& rhs) const {
             return rng == rhs.rng &&
                 turn == rhs.turn &&
@@ -272,6 +287,7 @@ namespace monopoly
                 pendingTradeAgreement == rhs.pendingTradeAgreement &&
                 pendingDebtSettlements == rhs.pendingDebtSettlements &&
                 currentAuction == rhs.currentAuction &&
+                pendingAuctionSale == rhs.pendingAuctionSale &&
                 propertiesPendingAuction == rhs.propertiesPendingAuction &&
                 pendingAcquisitions == rhs.pendingAcquisitions &&
                 pendingPurchaseDecision == rhs.pendingPurchaseDecision &&
@@ -317,7 +333,7 @@ namespace monopoly
         // over. Pending events are resolved in the following order:
 
         // Handle trade offers
-        std::queue<Trade> pendingTradeAgreement;
+        std::optional<Trade> pendingTradeAgreement;
         // Handle debt settlements
         std::queue<Debt> pendingDebtSettlements;
         // Handle current auction
@@ -340,7 +356,7 @@ namespace monopoly
         // higher priority events can be raised, until the end of the game. A
         // pending event _can never_ depend on the resolution of an event lower in
         // priority (for example you cannot trigger an auction to settle a debt).
-        // This rule allows game events to be resolved in a way that avoids loops
-        // and recursion.
+        // This rule allows game events to be resolved in a way that avoids
+        // undesirable loops.
     };
 }

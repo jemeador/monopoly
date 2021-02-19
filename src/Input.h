@@ -78,6 +78,10 @@ namespace monopoly {
     };
 
     // Ends your turn
+    struct DeclineTradeInput {
+    };
+
+    // Ends your turn
     struct EndTurnInput {
     };
 
@@ -93,6 +97,7 @@ namespace monopoly {
         BidInput,
         DeclineBidInput,
         OfferTradeInput,
+        DeclineTradeInput,
         EndTurnInput
     >;
     using PlayerIndexInputPair = std::pair<int, Input>;

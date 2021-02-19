@@ -48,6 +48,7 @@ namespace monopoly
         void process_bid_input(int playerIndex, BidInput const& input);
         void process_decline_bid_input(int playerIndex, DeclineBidInput const& input);
         void process_offer_trade_input(int playerIndex, OfferTradeInput const& input);
+        void process_decline_trade_input(int playerIndex, DeclineTradeInput const& input);
         void process_end_turn_input(int playerIndex, EndTurnInput const& input);
 
         void start();

@@ -75,6 +75,10 @@ void Game::process_inputs() {
 }
 
 void Game::process_input(int playerIndex, Input const& input) {
+    if (state.get_controlling_player_index() != playerIndex) {
+        return;
+    }
+
     if (auto inputPtr = std::get_if<RollInput>(&input)) {
         process_roll_input(playerIndex, *inputPtr);
     }
@@ -107,6 +111,9 @@ void Game::process_input(int playerIndex, Input const& input) {
     }
     else if (auto inputPtr = std::get_if<OfferTradeInput>(&input)) {
         process_offer_trade_input(playerIndex, *inputPtr);
+    }
+    else if (auto inputPtr = std::get_if<DeclineTradeInput>(&input)) {
+        process_decline_trade_input(playerIndex, *inputPtr);
     }
     else if (auto inputPtr = std::get_if<EndTurnInput>(&input)) {
         process_end_turn_input(playerIndex, *inputPtr);
@@ -219,6 +226,24 @@ void Game::process_decline_bid_input(int playerIndex, DeclineBidInput const& inp
 }
 
 void Game::process_offer_trade_input(int playerIndex, OfferTradeInput const& input) {
+    Trade trade;
+    trade.offeringPlayer = playerIndex;
+    trade.offer = input.offer;
+    trade.consideringPlayer = input.consideringPlayer;
+    trade.consideration = input.consideration;
+    if (!state.check_if_trade_is_valid(trade)) {
+        return;
+    }
+
+    state.force_offer_trade(trade);
+}
+
+void Game::process_decline_trade_input(int playerIndex, DeclineTradeInput const& input) {
+    if (!state.check_if_player_is_allowed_to_decline_trade(playerIndex)) {
+        return;
+    }
+
+    state.force_decline_trade(playerIndex);
 }
 
 void Game::process_end_turn_input(int playerIndex, EndTurnInput const& input) {

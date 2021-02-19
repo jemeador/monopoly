@@ -186,6 +186,20 @@ std::string monopoly::to_string(Card card) {
     return lookup_key(card);
 }
 
+std::string monopoly::to_string(TurnPhase phase) {
+    switch (phase) {
+        case TurnPhase::WaitingForTradeOfferResponse: return "WaitingForTradeOfferResponse";
+        case TurnPhase::WaitingForDebtSettlement: return "WaitingForDebtSettlement";
+        case TurnPhase::WaitingForBids: return "WaitingForBids";
+        case TurnPhase::WaitingForAcquisitionManagement: return "WaitingForAcquisitionManagement";
+        case TurnPhase::WaitingForBuyPropertyInput: return "WaitingForBuyPropertyInput";
+        case TurnPhase::WaitingForRoll: return "WaitingForRoll";
+        case TurnPhase::WaitingForTurnEnd: return "WaitingForTurnEnd";
+    };
+    return "N/A";
+}
+
+
 std::string monopoly::card_flavor_text(Card card) {
     auto const& card_strings = string_data().at("cards");
     return replace_labels(card_strings.at(lookup_key(card)).at("flavorText").get<std::string>());
