@@ -137,6 +137,22 @@ int GameState::get_building_level(Property property) const {
     return 0;
 }
 
+int GameState::get_min_building_level_in_group(PropertyGroup group) const {
+    int min = HotelLevel;
+    for (auto property : properties_in_group(group)) {
+        min = std::min(get_building_level(property), min);
+    }
+    return min;
+}
+
+int GameState::get_max_building_level_in_group(PropertyGroup group) const {
+    int max = 0;
+    for (auto property : properties_in_group(group)) {
+        max = std::max(get_building_level(property), max);
+    }
+    return max;
+}
+
 std::map<Property, int> const& GameState::get_building_levels() const {
     return buildingLevels;
 }
@@ -307,10 +323,8 @@ bool GameState::check_if_player_is_allowed_to_mortgage(int actorIndex, Property 
     if (get_property_is_mortgaged(property)) {
         return false;
     }
-    for (auto property : properties_in_group(property_group(property))) {
-        if (get_building_level(property) > 0) {
-            return false;
-        }
+    if (get_max_building_level_in_group(property_group(property)) > 0) {
+        return false;
     }
     return true;
 }
@@ -468,6 +482,10 @@ bool GameState::check_if_player_can_fulfill_promise(int playerIndex, Promise pro
     }
     for (auto const deed : promise.deeds) {
         if (promisingPlayer.deeds.count(deed) == 0) {
+
+            return false;
+        }
+        if (get_max_building_level_in_group(property_group(deed)) > 0) {
             return false;
         }
     }
@@ -738,6 +756,7 @@ void GameState::force_give_deeds(int playerIndex, std::set<Property> deeds) {
 }
 
 void GameState::force_transfer_deed(int fromPlayerIndex, int toPlayerIndex, Property deed) {
+    assert(get_building_level(deed) == 0);
     auto const countErased = players[fromPlayerIndex].deeds.erase(deed);
     assert(countErased == 1);
     auto const insertRet = players[toPlayerIndex].deeds.insert(deed);
@@ -867,7 +886,7 @@ void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     auto& creditor = players[creditorPlayerIndex];
     for (auto deed : debtor.deeds) {
-        while (buildingLevels[deed] > 0)
+        while (get_building_level(deed) > 0)
             force_sell_building(deed);
     }
     force_transfer_funds(debtorPlayerIndex, creditorPlayerIndex, debtor.funds); // likely negative

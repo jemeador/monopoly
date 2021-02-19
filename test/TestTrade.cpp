@@ -166,5 +166,23 @@ SCENARIO("Trades with promises that can't be fulfilled, trades with empty promis
                 test.require_phase(TurnPhase::WaitingForRoll);
             }
         }
+
+        AND_GIVEN("player 2 has a property with a house") {
+            test.give_deed(Player::p2, Property::Blue_1);
+            test.set_buildings({ {Property::Blue_1, 1} });
+
+            WHEN("player 1 tries to request for consideration a deed in a property group with buidings") {
+                Trade trade;
+                trade.offeringPlayer = Player::p1;
+                trade.offer = { 100, {}, {} };
+                trade.consideringPlayer = Player::p2;
+                trade.consideration = { 0, {Property::Blue_2}, {} };
+                test.propose_trade(trade);
+
+                THEN("nothing happens") {
+                    test.require_phase(TurnPhase::WaitingForRoll);
+                }
+            }
+        }
     }
 }

@@ -173,6 +173,8 @@ namespace monopoly
         int get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const;
         TurnPhase get_turn_phase() const;
         int get_building_level(Property property) const;
+        int get_min_building_level_in_group(PropertyGroup group) const;
+        int get_max_building_level_in_group(PropertyGroup group) const;
         std::map<Property, int> const& get_building_levels() const;
         std::optional<Auction> get_current_auction() const;
         int calculate_rent(Property property) const;
