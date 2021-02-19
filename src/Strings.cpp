@@ -69,6 +69,7 @@ namespace {
         case Space::LuxuryTax: return "LuxuryTax";
         case Space::Blue_2: return "Blue_2";
         }
+        return "N/A";
     }
 
 
@@ -103,7 +104,7 @@ namespace {
         case Property::Railroad_3: return "Railroad_3";
         case Property::Railroad_4: return "Railroad_4";
         }
-        return "";
+        return "N/A";
     }
 
     char const* lookup_key(PropertyGroup group) {
@@ -119,13 +120,14 @@ namespace {
         case PropertyGroup::Utility: return "Utility";
         case PropertyGroup::Railroad: return "Railroad";
         }
+        return "N/A";
     }
     char const* lookup_key(DeckType deckType) {
         switch (deckType) {
         case DeckType::Chance: return "Chance";
         case DeckType::CommunityChest: return "CommunityChest";
         }
-        return "";
+        return "N/A";
     }
     char const* lookup_key(Card card) {
         switch (card) {
@@ -161,7 +163,7 @@ namespace {
         case Card::CommunityChest_Pay50: return "CommunityChest_Pay50";
         case Card::CommunityChest_Repairs: return "CommunityChest_Repairs";
         }
-        return "";
+        return "N/A";
     }
 
 }

@@ -79,7 +79,7 @@ namespace monopoly
     struct Auction
     {
         Property property;
-        int highestBid;
+        int highestBid = 0;
         std::queue<int> biddingOrder; // front is the next bidder's player index, back is the recent (highest) bidder
 
         bool operator== (Auction const& rhs) const {
@@ -91,9 +91,9 @@ namespace monopoly
     };
 
     struct Debt {
-        int debtor;
+        int debtor = -1;
         std::optional<int> creditor;
-        int amount;
+        int amount = 0;
 
         bool operator== (Debt const& rhs) const {
             return
@@ -105,7 +105,7 @@ namespace monopoly
     };
 
     struct Promise {
-        int cash;
+        int cash = 0;
         std::set<Property> deeds;
         std::set<DeckType> getOutOfJailFreeCards;
 

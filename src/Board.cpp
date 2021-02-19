@@ -46,7 +46,13 @@ namespace {
     inline int real_estate_table_lookup(Property p, DeedField f) {
         int const row = static_cast<int> (p);
         int const col = static_cast<int> (f);
-        return real_estate_table[row * tableColumns + col];
+        if (row >= all_properties().size()) {
+            return 0;
+        }
+        if (col >= tableColumns) {
+            return 0;
+        }
+        return real_estate_table[static_cast<size_t> (row * tableColumns + col)];
     }
 
 }

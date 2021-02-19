@@ -71,6 +71,7 @@ int GameState::get_controlling_player_index() const {
         case TurnPhase::WaitingForTurnEnd:
             return activePlayerIndex;
     }
+    return activePlayerIndex;
 }
 
 int GameState::get_next_player_index(int playerIndex) const {
@@ -429,6 +430,7 @@ bool GameState::check_if_player_is_allowed_to_sell_all_buildings(int actorIndex,
             return false;
         }
     }
+    return true;
 }
 
 bool GameState::check_if_player_is_allowed_to_bid(int actorIndex, int amount) const {
@@ -476,6 +478,9 @@ bool GameState::check_if_trade_is_valid(Trade trade) const {
     if (get_controlling_player_index() != trade.offeringPlayer) {
         return false;
     }
+    if (trade.offeringPlayer == trade.consideringPlayer) {
+        return false;
+    }
     if (trade.offer.cash > 0 && trade.consideration.cash > 0) { // don't trade cash for cash
         return false;
     }
@@ -492,6 +497,7 @@ bool GameState::check_if_trade_is_valid(Trade trade) const {
         if (!check_if_player_can_pay_closing_costs(t.offeringPlayer, t.offer, t.consideration)) {
             return false;
         }
+        return true;
     };
     if (!check_validity_in_one_direction(trade)) {
         return false;
