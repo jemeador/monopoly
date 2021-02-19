@@ -13,7 +13,6 @@ target_link_libraries (Test_Monopoly PRIVATE Catch2::Catch2)
 include_directories (Test_Monopoly "../src")
 include_directories (Test_Monopoly "lib/Catch2/src")
 
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/Catch2/contrib/")
 
 include("CTest")
