@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <iterator>
 
 namespace monopoly
 {

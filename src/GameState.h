@@ -4,6 +4,7 @@
 #include"Board.h"
 #include"Player.h"
 
+#include<list>
 #include<map>
 #include<optional>
 #include<queue>
@@ -206,6 +207,8 @@ namespace monopoly
         bool check_if_player_is_allowed_to_bid(int actorIndex, int amount) const;
         bool check_if_player_is_allowed_to_decline_bid(int actorIndex) const;
         bool check_if_player_is_allowed_to_decline_trade(int actorIndex) const;
+        bool check_if_player_is_allowed_to_end_turn(int actorIndex) const;
+        bool check_if_player_is_allowed_to_resign(int actorIndex) const;
         bool check_if_trade_is_valid(Trade trade) const;
         bool check_if_player_can_fulfill_promise(int playerIndex, Promise promise) const;
         bool check_if_player_can_pay_closing_costs(int playerIndex, Promise lostAssets, Promise gainedAssets) const;
@@ -270,6 +273,7 @@ namespace monopoly
 
         void force_bankrupt(int debtorPlayerIndex);
         void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
+        void force_resign(int playerIndex);
 
         void force_property_offer_prompt(int playerIndex, Property property);
         void force_liquidate_prompt(int debtorPlayerIndex, int amount);
@@ -345,7 +349,7 @@ namespace monopoly
         // Handle trade offers
         std::optional<Trade> pendingTradeAgreement;
         // Handle debt settlements
-        std::queue<Debt> pendingDebtSettlements;
+        std::list<Debt> pendingDebtSettlements;
         // Handle current auction
         std::optional<Auction> currentAuction;
         // Handle closing auction

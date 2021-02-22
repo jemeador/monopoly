@@ -241,7 +241,7 @@ namespace monopoly
                     if (property_is_in_group(property, PropertyGroup::Railroad)) {
                         auto const ownedGroupCount = state.get_properties_owned_in_group(property);
                         for (auto railroadSlot = 0; railroadSlot < 4; ++railroadSlot) {
-                            bool const slotFilled = ownedGroupCount > railroadSlot;
+                            auto const slotFilled = ownedGroupCount > railroadSlot;
                             std::cout << (slotFilled ? "R " : "_ ");
                         }
                         std::cout << "  ";
@@ -249,15 +249,15 @@ namespace monopoly
                     else if (property_is_in_group(property, PropertyGroup::Utility)) {
                         auto const ownedGroupCount = state.get_properties_owned_in_group(property);
                         for (auto utilitySlot = 0; utilitySlot < 2; ++utilitySlot) {
-                            bool const slotFilled = ownedGroupCount > utilitySlot;
+                            auto const slotFilled = ownedGroupCount > utilitySlot;
                             std::cout << (slotFilled ? "U " : "_ ");
                         }
                         std::cout << "      ";
                     }
                     else {
-                        bool const buildingLevel = bl[space_to_property(space)];
+                        auto const buildingLevel = bl[space_to_property(space)];
                         for (auto houseSlot = 0; houseSlot < 5; ++houseSlot) {
-                            bool const houseIsBuilt = (buildingLevel > houseSlot);
+                            auto const houseIsBuilt = (buildingLevel > houseSlot);
                             std::cout << (houseIsBuilt ? "# " : "_ ");
                         }
                     }

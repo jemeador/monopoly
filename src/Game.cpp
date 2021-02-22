@@ -121,6 +121,9 @@ void Game::process_input(int playerIndex, Input const& input) {
     else if (auto inputPtr = std::get_if<EndTurnInput>(&input)) {
         process_end_turn_input(playerIndex, *inputPtr);
     }
+    else if (auto inputPtr = std::get_if<ResignInput>(&input)) {
+        process_resign_input(playerIndex, *inputPtr);
+    }
 }
 
 void Game::process_roll_input(int playerIndex, RollInput const& input) {
@@ -258,13 +261,19 @@ void Game::process_decline_trade_input(int playerIndex, DeclineTradeInput const&
 }
 
 void Game::process_end_turn_input(int playerIndex, EndTurnInput const& input) {
-    if (state.get_turn_phase() != TurnPhase::WaitingForTurnEnd) {
+    if (!state.check_if_player_is_allowed_to_end_turn(playerIndex)) {
         return;
     }
-    if (state.get_active_player_index() != playerIndex) {
-        return;
-    }
+
     state.force_turn_start(state.get_next_player_index());
+}
+
+void Game::process_resign_input(int playerIndex, ResignInput const& input) {
+    if (!state.check_if_player_is_allowed_to_resign(playerIndex)) {
+        return;
+    }
+
+    state.force_resign(playerIndex);
 }
 
 void Game::start() {

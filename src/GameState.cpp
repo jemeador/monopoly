@@ -471,6 +471,23 @@ bool GameState::check_if_player_is_allowed_to_decline_trade(int actorIndex) cons
     return true;
 }
 
+bool GameState::check_if_player_is_allowed_to_end_turn(int actorIndex) const {
+    if (phase != TurnPhase::WaitingForTurnEnd) {
+        return false;
+    }
+    if (get_controlling_player_index () != actorIndex) {
+        return false;
+    }
+    return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_resign(int actorIndex) const {
+    if (get_controlling_player_index () != actorIndex) {
+        return false;
+    }
+    return true;
+}
+
 bool GameState::check_if_trade_is_valid(Trade trade) const {
     if (phase == TurnPhase::WaitingForBids) {
         return false;
@@ -510,7 +527,7 @@ bool GameState::check_if_trade_is_valid(Trade trade) const {
 
 bool GameState::check_if_player_can_fulfill_promise(int playerIndex, Promise promise) const {
     auto const& promisingPlayer = players[playerIndex];
-    if (promise.cash > promisingPlayer.funds) {
+    if (promise.cash > 0 && promise.cash > promisingPlayer.funds) {
         return false;
     }
     for (auto const deed : promise.deeds) {
@@ -966,26 +983,57 @@ void GameState::force_bankrupt(int debtorPlayerIndex) {
             force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
         }
     }
-    std::set<Property> deedsToAuction;
-    swap(deedsToAuction, debtor.deeds);
     for (auto property : debtor.deeds) {
-        force_property_auction(property);
+        propertiesPendingAuction.push(property);
     }
+    debtor.funds = 0;
+    debtor.deeds.clear();
     force_return_get_out_of_jail_free_cards(debtorPlayerIndex);
-    debtor.eliminated = true;
 }
 
 void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     auto& creditor = players[creditorPlayerIndex];
     for (auto deed : debtor.deeds) {
-        while (get_building_level(deed) > 0)
-            force_sell_building(deed);
+        if (get_building_level(deed) > 0) {
+            force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
+        }
     }
     force_transfer_funds(debtorPlayerIndex, creditorPlayerIndex, debtor.funds); // likely negative
     force_transfer_deeds(debtorPlayerIndex, creditorPlayerIndex, debtor.deeds);
     force_transfer_get_out_of_jail_free_cards(debtorPlayerIndex, creditorPlayerIndex);
-    debtor.eliminated = true;
+}
+
+void GameState::force_resign(int resigneeIndex) {
+    std::optional<int> creditor;
+    for (auto debtIt = pendingDebtSettlements.begin(); debtIt != pendingDebtSettlements.end();) {
+        if (debtIt->debtor == resigneeIndex) {
+            if (debtIt->creditor) {
+                creditor = debtIt->creditor;
+                pendingDebtSettlements.erase(debtIt++);
+                continue;
+            }
+        }
+        ++debtIt;
+    }
+    if (creditor) {
+        force_bankrupt(resigneeIndex, *creditor);
+    }
+    else {
+		force_bankrupt(resigneeIndex);
+    }
+    if (check_if_player_is_allowed_to_decline_trade (resigneeIndex)) {
+        force_decline_trade(resigneeIndex);
+    }
+    if (check_if_player_is_allowed_to_decline_bid(resigneeIndex)) {
+        force_decline_bid(resigneeIndex);
+    }
+    if (activePlayerIndex == resigneeIndex) {
+        force_turn_end();
+        force_turn_start(get_next_player_index ());
+    }
+    players[resigneeIndex].eliminated = true;
+	resolve_game_state();
 }
 
 void GameState::force_property_offer_prompt(int playerIndex, Property property) {
@@ -999,7 +1047,7 @@ void GameState::force_liquidate_prompt(int debtorPlayerIndex, int amount) {
     Debt debt;
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
-    pendingDebtSettlements.push(debt);
+    pendingDebtSettlements.push_back(debt);
 }
 
 void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount) {
@@ -1007,7 +1055,7 @@ void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayer
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
     debt.creditor = creditorPlayerIndex;
-    pendingDebtSettlements.push(debt);
+    pendingDebtSettlements.push_back(debt);
 }
 
 void GameState::force_bid(int playerIndex, int amount) {
@@ -1109,7 +1157,7 @@ void GameState::resolve_debt_settlements() {
     auto const debt = pendingDebtSettlements.front();
 
     if (players[debt.debtor].funds >= 0) {
-        pendingDebtSettlements.pop();
+        pendingDebtSettlements.pop_front();
         resolve_game_state();
     }
     else {

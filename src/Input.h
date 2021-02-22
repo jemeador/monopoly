@@ -83,12 +83,19 @@ namespace monopoly {
         Promise consideration;
     };
 
-    // Ends your turn
+    // Decline to trade with another player after recieving a trade proposal
+    // Only the considering player can decline a trade.
     struct DeclineTradeInput {
     };
 
     // Ends your turn
+    // Can only be used at the end of the active player's turn
     struct EndTurnInput {
+    };
+
+    // Resign from the game
+    // Can be done at any time, but may be the only viable action when there are unsettled debts that cannot be paid
+    struct ResignInput {
     };
 
     using Input = std::variant<
@@ -105,7 +112,8 @@ namespace monopoly {
         DeclineBidInput,
         OfferTradeInput,
         DeclineTradeInput,
-        EndTurnInput
+        EndTurnInput,
+        ResignInput
     >;
     using PlayerIndexInputPair = std::pair<int, Input>;
 }
