@@ -103,6 +103,7 @@ namespace {
         case Property::Railroad_2: return "Railroad_2";
         case Property::Railroad_3: return "Railroad_3";
         case Property::Railroad_4: return "Railroad_4";
+        case Property::Invalid: break;
         }
         return "N/A";
     }

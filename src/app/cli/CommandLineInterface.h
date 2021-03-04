@@ -154,7 +154,7 @@ namespace monopoly
         char auto_input(std::string const& options) {
             static auto const turnLimit = 1000;
             if (state.get_turn() > turnLimit) {
-                std::cout << "Turn limit exceeded (" << turnLimit << ')\n';
+                std::cout << "Turn limit exceeded (" << turnLimit << ")\n";
                 return quitOption;
             }
             std::string const optionPriorities = "rbe";
@@ -164,6 +164,7 @@ namespace monopoly
                     return o;
                 }
             }
+            return '?';
         }
 
         void send_input(int activePlayer, char input) {

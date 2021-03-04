@@ -28,9 +28,6 @@ namespace monopoly
         // Most state information can be inferred from monopoly's predictable
         // rules and cheating a bit with the dice.
 
-        inline std::pair<int, int> get_last_dice_roll(int playerIndex) const {
-        }
-
         inline void set_active_player(int playerIndex) {
             change_state(std::bind(&GameState::force_turn_start, std::placeholders::_1, playerIndex));
         }

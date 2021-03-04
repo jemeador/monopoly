@@ -104,6 +104,8 @@ namespace monopoly
         case Property::Railroad_3:
         case Property::Railroad_4:
             return PropertyGroup::Railroad;
+        case Property::Invalid:
+            break;
         }
         assert(false); // unreachable
         return PropertyGroup::Railroad;
@@ -287,6 +289,7 @@ namespace monopoly
         case Space::Railroad_2: return Property::Railroad_2;
         case Space::Railroad_3: return Property::Railroad_3;
         case Space::Railroad_4: return Property::Railroad_4;
+        default: break;
         }
         return Property::Invalid;
     }
@@ -321,6 +324,7 @@ namespace monopoly
         case Property::Railroad_2: return Space::Railroad_2;
         case Property::Railroad_3: return Space::Railroad_3;
         case Property::Railroad_4: return Space::Railroad_4;
+        case Property::Invalid: break;
         }
         return Space::Go;
     }

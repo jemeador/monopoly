@@ -88,7 +88,7 @@ namespace monopoly
                 highestBid == rhs.highestBid &&
                 biddingOrder == rhs.biddingOrder;
         }
-        bool operator!= (Auction const& rhs) const { return operator!= (rhs); }
+        bool operator!= (Auction const& rhs) const { return !operator== (rhs); }
     };
 
     struct Debt {
@@ -102,7 +102,7 @@ namespace monopoly
                 creditor == rhs.creditor &&
                 amount == rhs.amount;
         }
-        bool operator!= (Debt const& rhs) const { return operator!= (rhs); }
+        bool operator!= (Debt const& rhs) const { return !operator== (rhs); }
     };
 
     struct Promise {
@@ -116,7 +116,7 @@ namespace monopoly
                 deeds == rhs.deeds &&
                 getOutOfJailFreeCards == rhs.getOutOfJailFreeCards;
         }
-        bool operator!= (Promise const& rhs) const { return operator!= (rhs); }
+        bool operator!= (Promise const& rhs) const { return !operator== (rhs); }
     };
 
     struct Trade {
@@ -132,7 +132,7 @@ namespace monopoly
                 offer == rhs.offer &&
                 consideration == rhs.consideration;
         }
-        bool operator!= (Trade const& rhs) const { return operator!= (rhs); }
+        bool operator!= (Trade const& rhs) const { return !operator== (rhs); }
     };
     
     inline Trade reciprocal_trade(Trade t) {
@@ -157,7 +157,7 @@ namespace monopoly
                 recipient == rhs.recipient &&
                 deeds == rhs.deeds;
         }
-        bool operator!= (Acquisition const& rhs) const { return operator!= (rhs); }
+        bool operator!= (Acquisition const& rhs) const { return !operator== (rhs); }
     };
 
     class GameState
