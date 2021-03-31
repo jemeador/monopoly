@@ -43,30 +43,18 @@ namespace monopoly
             150,    0,    0,    0,    0,    0,    0,    0,  75, // Utility 2
     };
 
-    enum class DeedField : int {
-        Price = 0, PricePerHouse, Rent, Rent1, Rent2, Rent3, Rent4, RentHotel, Mortgage,
-    };
-    static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent));
-    static const int tableColumns = 9;
-
-    inline int real_estate_table_lookup(Property p, DeedField f) {
-        int const row = static_cast<int> (p);
-        int const col = static_cast<int> (f);
-        if (row >= all_properties().size()) {
-            return 0;
-        }
-        if (col >= tableColumns) {
-            return 0;
-        }
-        return real_estate_table[static_cast<size_t> (row * tableColumns + col)];
-    }
-
     static constexpr int NumberOfSpaces = 40;
     static constexpr int MaxJailTurns = 3;
     static constexpr int HotelLevel = 5;
     static constexpr int BailCost = 50;
     static constexpr int GoSalary = 200;
     static constexpr double MortgageInterestRate = 0.10;
+
+    enum class DeedField : int {
+        Price = 0, PricePerHouse, Rent, Rent1, Rent2, Rent3, Rent4, RentHotel, Mortgage,
+    };
+    static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent));
+    static const int tableColumns = 9;
 
     enum class PropertyGroup
     {
@@ -253,7 +241,20 @@ namespace monopoly
         };
     }
 
-    int price_of_property(Property p) {
+    inline int real_estate_table_lookup(Property p, DeedField f) {
+        int const row = static_cast<int> (p);
+        int const col = static_cast<int> (f);
+        if (row >= all_properties().size()) {
+            return 0;
+        }
+        if (col >= tableColumns) {
+            return 0;
+        }
+        return real_estate_table[static_cast<size_t> (row * tableColumns + col)];
+    }
+
+
+    inline int price_of_property(Property p) {
         if (property_is_in_group(p, PropertyGroup::Railroad)) {
             return 200;
         }
@@ -265,33 +266,33 @@ namespace monopoly
         }
     }
 
-    int price_per_house_on_property(Property p) {
+    inline int price_per_house_on_property(Property p) {
         return real_estate_table_lookup(p, DeedField::PricePerHouse);
     }
 
-    int sell_price_per_house_on_property(Property p) {
+    inline int sell_price_per_house_on_property(Property p) {
         return price_per_house_on_property(p) / 2;
     }
-    int rent_price_of_real_estate(Property p) {
+    inline int rent_price_of_real_estate(Property p) {
         return real_estate_table_lookup(p, DeedField::Rent);
     }
-    int rent_price_of_improved_real_estate(Property p, int buildingLevel) {
+    inline int rent_price_of_improved_real_estate(Property p, int buildingLevel) {
         return real_estate_table_lookup(p, static_cast<DeedField> (static_cast<int> (DeedField::Rent) + buildingLevel));
     }
-    int rent_price_of_railroad(int ownedRailroads) {
+    inline int rent_price_of_railroad(int ownedRailroads) {
         return 25 * pow(2, ownedRailroads - 1);
     }
-    int rent_price_of_utility(int ownedUtilities, std::pair<int, int> roll) {
+    inline int rent_price_of_utility(int ownedUtilities, std::pair<int, int> roll) {
         auto const sum = roll.first + roll.second;
         if (ownedUtilities == 1)
             return 4 * sum;
         else
             return 10 * sum;
     }
-    int mortgage_value_of_property(Property p) {
+    inline int mortgage_value_of_property(Property p) {
         return real_estate_table_lookup(p, DeedField::Mortgage);
     }
-    int unmortgage_price_of_property(Property p) {
+    inline int unmortgage_price_of_property(Property p) {
         return real_estate_table_lookup(p, DeedField::Mortgage) * (1 + MortgageInterestRate);
     }
 
