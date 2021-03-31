@@ -171,7 +171,6 @@ int GameState::calculate_rent(Property property) const {
         return 0;
     }
     auto const ownerIndex = *ownerOpt;
-    auto const& ownerDeeds = players[ownerIndex].deeds;
     auto const group = property_group(property);
     auto const ownedDeedsInGroup = get_properties_owned_in_group_by_player(ownerIndex, group);
 
@@ -706,9 +705,6 @@ void GameState::force_land(int playerIndex, Space space) {
             auto const rent = calculate_rent(property);
             force_transfer_funds(playerIndex, *ownerOpt, rent);
         }
-        else {
-            // Owner pays no rent to stay
-        }
     }
     else {
         switch (space)
@@ -731,6 +727,9 @@ void GameState::force_land(int playerIndex, Space space) {
             break;
         case Space::GoToJail:
             force_go_to_jail(playerIndex);
+            break;
+        default:
+            // Nothing happens when landing on Go, or Jail, or FreeParking
             break;
         }
     }
@@ -917,7 +916,7 @@ void GameState::force_remove_building(Property property) {
 void GameState::force_set_building_levels(std::map<Property, int> newBuildingLevels) {
     Property property;
     int desiredBuildingLevel;
-    for (auto const pair : newBuildingLevels) {
+    for (auto const &pair : newBuildingLevels) {
         std::tie(property, desiredBuildingLevel) = pair;
         while (get_building_level(property) > desiredBuildingLevel) {
             force_remove_building(property);
@@ -996,7 +995,6 @@ void GameState::force_bankrupt(int debtorPlayerIndex) {
 
 void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
-    auto& creditor = players[creditorPlayerIndex];
     for (auto deed : debtor.deeds) {
         if (get_building_level(deed) > 0) {
             force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
@@ -1185,7 +1183,6 @@ void GameState::resolve_auction() {
         }
     }
     else {
-        auto const& highestBidder = players[highestBidderIndex];
         auto const payment = currentAuction->highestBid + calculate_closing_costs_on_sale(currentAuction->property);
         currentAuction = {};
         pendingAuctionSale = { highestBidderIndex, currentAuction->property };

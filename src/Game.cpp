@@ -15,8 +15,8 @@ Game::~Game()
 Game::Game(IInterface* interface)
     : interface(interface)
     , setup(interface->get_setup())
-    , state(setup)
     , currentCycle(0)
+    , state(setup)
 {
     start();
 }
@@ -46,7 +46,7 @@ void Game::process_inputs() {
     int playerIndex;
     Input input;
     while (!playerInputQueue.empty()) {
-        std:tie(playerIndex, input) = playerInputQueue.front();
+        tie(playerIndex, input) = playerInputQueue.front();
         process_input(playerIndex, input);
         playerInputQueue.pop();
     }

@@ -50,6 +50,9 @@ namespace monopoly
                 case TurnPhase::WaitingForTurnEnd:
                     show_waiting_for_turn_end_prompt();
                     break;
+                default:
+                    // Unimplemented
+                    break;
                 }
                 initialized = true;
             }

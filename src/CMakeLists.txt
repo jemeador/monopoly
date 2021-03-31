@@ -14,14 +14,6 @@ add_library (MonopolyEngine ${SOURCES})
 include_directories (MonopolyEngine "lib/json/include")
 target_link_libraries (MonopolyEngine PRIVATE nlohmann_json::nlohmann_json)
 
-set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-set(CMAKE_HAVE_THREADS_LIBRARY 1)
-set(CMAKE_USE_WIN32_THREADS_INIT 0)
-set(CMAKE_USE_PTHREADS_INIT 1)
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-target_link_libraries(MonopolyEngine PRIVATE Threads::Threads)
-
 # Add source to this project's executable.
 file (GLOB HEADERS *.h)
 set_target_properties (MonopolyEngine PROPERTIES PUBLIC_HEADER "${HEADERS}")
