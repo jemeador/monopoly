@@ -16,19 +16,16 @@ Game::Game(IInterface* interface)
     : interface(interface)
     , setup(interface->get_setup())
     , state(setup)
-    , gameOver(false)
     , currentCycle(0)
 {
     start();
 }
 
 GameState Game::get_state() const {
-    std::lock_guard<std::mutex> lock(stateMutex);
     return state;
 }
 
 void Game::set_state(GameState newState) {
-    std::lock_guard<std::mutex> lock(stateMutex);
     currentCycle = 0;
     std::swap(state, newState);
 }
@@ -38,29 +35,10 @@ void Game::reset() {
     start();
 }
 
-void Game::wait_for_processing() {
-    std::unique_lock<std::mutex> lock(stateMutex);
-    auto cycle = currentCycle;
-    waitCondition.wait(lock, [cycle, this] {return cycle != currentCycle;});
-}
-
-bool Game::game_over() const {
-    std::lock_guard<std::mutex> lock(stateMutex);
-    return gameOver;
-}
 void Game::process() {
-    while (!gameOver && gameEndFuture.wait_for(33ms) == std::future_status::timeout) { // ~30Hz
-        {
-            std::lock_guard<std::mutex> lock(stateMutex);
-            process_inputs();
-            interface->update(state);
-            auto const playersRemaining = state.get_players_remaining_count();
-            if (playersRemaining < 2)
-                gameOver = true;
-        }
-        waitCondition.notify_all();
-        currentCycle++;
-    }
+    process_inputs();
+    interface->update(state);
+    currentCycle++;
 }
 
 void Game::process_inputs() {
@@ -68,7 +46,7 @@ void Game::process_inputs() {
     int playerIndex;
     Input input;
     while (!playerInputQueue.empty()) {
-    std:tie(playerIndex, input) = playerInputQueue.front();
+        std:tie(playerIndex, input) = playerInputQueue.front();
         process_input(playerIndex, input);
         playerInputQueue.pop();
     }
@@ -147,6 +125,7 @@ void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& i
         return;
     }
 
+    // Move checks to game state
     auto const& player = state.get_player(playerIndex);
     auto const space = player.position;
     assert(space_is_property(space));
@@ -278,23 +257,11 @@ void Game::process_resign_input(int playerIndex, ResignInput const& input) {
 
 void Game::start() {
     std::cout << "Starting a new game" << std::endl;
-    std::promise<void> newPromise;
-    swap(gameEndPromise, newPromise);
-    gameOver = false;
-    gameEndFuture = gameEndPromise.get_future();
-    gameThread = std::thread(&Game::process, this);
-
-    {
-        std::lock_guard<std::mutex> lock(stateMutex);
-        GameState newState(interface->get_setup());
-        currentCycle = 0;
-        std::swap(state, newState);
-    }
+    GameState newState(interface->get_setup());
+    currentCycle = 0;
+    std::swap(state, newState);
 }
 
 void Game::stop() {
-    gameEndPromise.set_value();
-    gameThread.join();
-    gameOver = true;
     std::cout << "Game over" << std::endl;
 }

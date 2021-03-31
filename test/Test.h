@@ -62,76 +62,76 @@ namespace monopoly
         inline void roll() {
             auto const pi = game.get_state().get_active_player_index();
             interface.roll_dice(pi);
-            game.wait_for_processing();
+            game.process();
         }
         inline void roll(int a, int b) {
             auto const pi = game.get_state().get_active_player_index();
             interface.roll_loaded_dice(pi, { a, b });
-            game.wait_for_processing();
+            game.process();
         }
         inline void buy_property() {
             auto const pi = game.get_state().get_active_player_index();
             interface.buy_property(pi);
-            game.wait_for_processing();
+            game.process();
         }
         inline void auction_property() {
             auto const pi = game.get_state().get_active_player_index();
             interface.auction_property(pi);
-            game.wait_for_processing();
+            game.process();
         }
         inline void mortgage_property(int playerIndex, Property property) {
             interface.mortgage_property(playerIndex, property);
-            game.wait_for_processing();
+            game.process();
         }
         inline void unmortgage_property(Property property) {
             auto const pi = game.get_state().get_active_player_index();
             interface.unmortgage_property(pi, property);
-            game.wait_for_processing();
+            game.process();
         }
         inline void buy_building(Property property) {
             auto const pi = game.get_state().get_active_player_index();
             interface.buy_building(pi, property);
-            game.wait_for_processing();
+            game.process();
         }
         inline void sell_building(Property property) {
             auto const pi = game.get_state().get_active_player_index();
             interface.sell_building(pi, property);
-            game.wait_for_processing();
+            game.process();
         }
         inline void sell_all_buildings(PropertyGroup group) {
             auto const pi = game.get_state().get_active_player_index();
             interface.sell_all_buildings(pi, group);
-            game.wait_for_processing();
+            game.process();
         }
         inline void pay_bail() {
             auto const pi = game.get_state().get_active_player_index();
             interface.pay_bail(pi);
-            game.wait_for_processing();
+            game.process();
         }
         inline void use_get_out_of_jail_free_card() {
             auto const pi = game.get_state().get_active_player_index();
             interface.use_get_out_of_jail_free_card(pi);
-            game.wait_for_processing();
+            game.process();
         }
         inline void bid(int playerIndex, int bid) {
             interface.bid(playerIndex, bid);
-            game.wait_for_processing();
+            game.process();
         }
         inline void decline_bid(int playerIndex) {
             interface.decline_bid(playerIndex);
-            game.wait_for_processing();
+            game.process();
         }
         inline void propose_trade(Trade trade) {
             interface.propose_trade(trade);
-            game.wait_for_processing();
+            game.process();
         }
         inline void decline_trade(int playerIndex) {
             interface.decline_trade(playerIndex);
-            game.wait_for_processing();
+            game.process();
         }
         inline void resign(int playerIndex) {
             interface.resign(playerIndex);
-            game.wait_for_processing();
+            game.process();
         }
 
         inline void require_eliminated(int playerIndex, bool eliminated) {

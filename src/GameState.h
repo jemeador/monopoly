@@ -164,6 +164,7 @@ namespace monopoly
     {
     public:
         explicit GameState(GameSetup setup = {});
+        bool is_game_over() const;
         int get_turn() const;
         Bank get_bank() const;
         int get_player_count() const;

@@ -30,6 +30,9 @@ GameState::GameState(GameSetup setup)
     decks[DeckType::Chance].shuffle(rng);
 }
 
+bool GameState::is_game_over() const {
+    return get_players_remaining_count() < 2;
+}
 int GameState::get_turn() const {
     return turn;
 }

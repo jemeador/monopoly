@@ -15,7 +15,6 @@ namespace monopoly
     public:
         CommandLineInterface(bool automate = true)
             : IInterface()
-            , inputMutex()
             , inputBuffer()
             , automate(automate) {
         }
@@ -27,7 +26,6 @@ namespace monopoly
         }
 
         std::queue<PlayerIndexInputPair> poll() final {
-            std::lock_guard<std::mutex> lock(inputMutex);
             std::queue<PlayerIndexInputPair> ret;
             swap(ret, inputBuffer);
             return ret;
@@ -202,23 +200,18 @@ namespace monopoly
         }
 
         void queue_roll_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {} });
         }
         void queue_purchase_property_input(int playerIndex, BuyPropertyOption option) {
-            std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { option } });
         }
         void queue_use_get_out_of_jail_free_card_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {} });
         }
         void queue_pay_bail_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, PayBailInput {} });
         }
         void queue_end_turn_input(int playerIndex) {
-            std::lock_guard<std::mutex> lock(inputMutex);
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, EndTurnInput {} });
         }
 
@@ -282,7 +275,6 @@ namespace monopoly
         bool initialized = false;
         GameState state;
         GameState prevState;
-        std::mutex inputMutex;
         std::queue<PlayerIndexInputPair> inputBuffer;
         bool automate;
     };

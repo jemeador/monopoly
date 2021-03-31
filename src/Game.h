@@ -27,13 +27,10 @@ namespace monopoly
         // Game is started over with the same setup
         void reset();
 
-        // Blocks the calling thread until all input from the interfaces has been processed
-        void wait_for_processing();
-
-        bool game_over() const;
+        // Process inputs until further player intervention is required
+        void process();
 
     private:
-        void process();
         void process_inputs();
 
         void process_input(int playerIndex, Input const& input);
@@ -59,17 +56,6 @@ namespace monopoly
         IInterface* const interface;
         GameSetup const setup;
 
-        // Handles the game thread
-        std::promise<void> gameEndPromise;
-        std::future<void> gameEndFuture;
-        std::thread gameThread;
-        std::queue<std::pair<int, Input>> playerInputQueue;
-
-        // Used to wait for processing on the thread to finish
-        std::mutex mutable stateMutex;
-        std::condition_variable waitCondition;
-
-        bool gameOver;
         int currentCycle;
         GameState state;
     };
