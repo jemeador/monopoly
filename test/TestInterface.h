@@ -22,19 +22,14 @@ namespace monopoly
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {} });
         }
 
-        void roll_loaded_dice(int playerIndex, std::pair<int, int> diceValues) {
-            std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {diceValues} });
-        }
-
         void buy_property(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { BuyPropertyOption::Buy } });
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput {} });
         }
 
         void auction_property(int playerIndex) {
             std::lock_guard<std::mutex> lock(inputMutex);
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput {  BuyPropertyOption::Auction } });
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, AuctionPropertyInput {} });
         }
 
         void mortgage_property(int playerIndex, Property property) {

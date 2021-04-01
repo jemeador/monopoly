@@ -200,6 +200,7 @@ namespace monopoly
         bool check_if_player_is_allowed_to_use_get_out_jail_free_card(int actorIndex) const;
         bool check_if_player_is_allowed_to_pay_bail(int actorIndex) const;
         bool check_if_player_is_allowed_to_buy_property(int actorIndex) const;
+        bool check_if_player_is_allowed_to_auction_property(int actorIndex) const;
         bool check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const;
         bool check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const;
@@ -214,8 +215,25 @@ namespace monopoly
         bool check_if_player_can_fulfill_promise(int playerIndex, Promise promise) const;
         bool check_if_player_can_pay_closing_costs(int playerIndex, Promise lostAssets, Promise gainedAssets) const;
 
-        void force_turn_start(int playerIndex);
-        void force_turn_end();
+        void player_action_roll(int playerIndex);
+        void player_action_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType);
+        void player_action_pay_bail(int playerIndex);
+        void player_action_buy_property(int playerIndex);
+        void player_action_auction_property(int playerIndex);
+        void player_action_mortgage(int playerIndex, Property property);
+        void player_action_unmortgage(int playerIndex, Property property);
+        void player_action_buy_building(int playerIndex, Property property);
+        void player_action_sell_building(int playerIndex, Property property);
+        void player_action_sell_all_buildings(int playerIndex, PropertyGroup group);
+        void player_action_bid(int playerIndex, int amount);
+        void player_action_decline_bid(int playerIndex);
+        void player_action_offer_trade(Trade trade);
+        void player_action_decline_trade(int playerIndex);
+        void player_action_end_turn(int playerIndex);
+        void player_action_resign(int playerIndex);
+
+        void force_start_turn(int playerIndex);
+        void force_finish_turn();
 
         void force_funds(int playerIndex, int funds);
         void force_add_funds(int playerIndex, int funds);
@@ -223,9 +241,9 @@ namespace monopoly
         void force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds);
 
         void force_go_to_jail(int playerIndex);
+        void force_pay_bail(int playerIndex);
         void force_leave_jail(int playerIndex);
 
-        void force_random_roll(int playerIndex);
         void force_roll(int playerIndex, std::pair<int, int> roll);
         void force_advance(int playerIndex, int dist);
         void force_advance_without_landing(int playerIndex, int dist);
@@ -235,9 +253,6 @@ namespace monopoly
         void force_position(int playerIndex, Space space);
 
         void force_property_offer(int playerIndex, Property space);
-
-        void force_property_buy(int playerIndex, Property property);
-        void force_property_auction(Property property);
 
         void force_stack_deck(DeckType deckType, DeckContainer const& cards);
         void force_draw_chance_card(int playerIndex);
@@ -252,13 +267,9 @@ namespace monopoly
         void force_transfer_deed(int fromPlayerIndex, int toPlayerIndex, Property deed);
         void force_transfer_deeds(int fromPlayerIndex, int toPlayerIndex, std::set<Property> deeds);
 
-        void force_mortgage(Property property);
-        void force_unmortgage(Property property);
         void force_set_mortgaged(Property property, bool mortgaged);
 
-        void force_buy_building(Property property);
-        void force_sell_building(Property property);
-        void force_sell_all_buildings(PropertyGroup group);
+        void force_sell_all_buildings(int playerIndex, PropertyGroup group);
         void force_add_building(Property property);
         void force_remove_building(Property property);
         void force_set_building_levels(std::map<Property, int> newBuildingLevels);
@@ -266,25 +277,16 @@ namespace monopoly
         void force_give_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
         void force_transfer_get_out_of_jail_free_card(int fromPlayerIndex, int toPlayerIndex, DeckType deckType);
         void force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, int toPlayerIndex, std::set<DeckType> deckTypes = {DeckType::Chance, DeckType::CommunityChest});
-        void force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType);
         void force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
         void force_return_get_out_of_jail_free_cards(int playerIndex);
 
-        void force_pay_bail(int playerIndex);
-
         void force_bankrupt(int debtorPlayerIndex);
         void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
-        void force_resign(int playerIndex);
 
         void force_property_offer_prompt(int playerIndex, Property property);
         void force_liquidate_prompt(int debtorPlayerIndex, int amount);
         void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount);
 
-        void force_bid(int playerIndex, int amount);
-        void force_decline_bid(int playerIndex);
-
-        void force_offer_trade(Trade trade);
-        void force_decline_trade(int playerIndex);
         void force_trade(Trade trade);
         void force_transfer_promise(int fromPlayerIndex, int toPlayerIndex, Promise promise);
 
@@ -343,7 +345,7 @@ namespace monopoly
         void resolve_debt_settlements();
         void resolve_auction();
         void resolve_auction_sale();
-        void queue_auction(Property property);
+        void resolve_queued_auction(Property property);
         // The game is constantly trying to reach the "end state" which is a game
         // over. Pending events are resolved in the following order:
 

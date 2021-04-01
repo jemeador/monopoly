@@ -14,13 +14,12 @@ namespace monopoly {
         std::pair<int, int> loadedDiceValues;
     };
 
-    enum class BuyPropertyOption {
-        Auction,
-        Buy,
-    };
-    // Buy the unowned property the active player is on at its listed price. Only the active player can buy, and only if they have sufficient funds.
+    // Buy the landed on property at its listed price. Only the active player can buy a property immediately after landing on it, and only if it is unowned and they have sufficient funds.
     struct BuyPropertyInput {
-        BuyPropertyOption option;
+    };
+
+    // Put the landed on property up for auction. Only the active player can start an auction immediately after landing on an unowned property.
+    struct AuctionPropertyInput {
     };
 
     // Buy a building on a property. Inputs that do not follow the building placement rules of monopoly are ignored.
@@ -101,6 +100,7 @@ namespace monopoly {
     using Input = std::variant<
         RollInput,
         BuyPropertyInput,
+        AuctionPropertyInput,
         BuyBuildingInput,
         SellBuildingInput,
         SellAllBuildingsInput,
@@ -116,4 +116,13 @@ namespace monopoly {
         ResignInput
     >;
     using PlayerIndexInputPair = std::pair<int, Input>;
+
+    inline Trade trade_from_offer_input(int playerIndex, OfferTradeInput offerInput) {
+        Trade trade;
+        trade.offeringPlayer = playerIndex;
+        trade.offer = offerInput.offer;
+        trade.consideringPlayer = offerInput.consideringPlayer;
+        trade.consideration = offerInput.consideration;
+        return trade;
+    }
 }

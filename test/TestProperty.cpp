@@ -275,7 +275,7 @@ SCENARIO("Whenever you land on an owned property you must pay rent to the ownwer
         test.give_deeds(Player::p2, { Property::Utility_1, Property::Utility_2 });
 
         WHEN("player 1 rolls a 6,6 and lands on Electric Company") {
-            test.roll(6, 6);
+            test.roll(Player::p1, 6, 6);
 
             THEN("player 1 pays player 2 the rent price for 2 utilities; 10 * the dice roll") {
                 int const rent = rent_price_of_utility(2, { 6, 6 });
@@ -285,16 +285,14 @@ SCENARIO("Whenever you land on an owned property you must pay rent to the ownwer
             }
         }
     }
-    GIVEN("Player 1 owns St. Charles Place and starts on Reading Railroad") {
-        test.move_player(Player::p1, Space::Railroad_1);
+    GIVEN("Player 1 owns St. Charles Place") {
         test.give_deeds(Player::p1, { Property::Magenta_1 });
 
-        WHEN("player 1 rolls a 2,4 and lands on St. Charles Place") {
-            test.roll(2, 4);
+        WHEN("player 1 lands on St. Charles Place") {
+            test.land_on_space(Player::p1, Space::Magenta_1);
 
-            THEN("player 1 pays nothing because he owns it, and his turn ends") {
+            THEN("player 1 pays nothing because he owns it") {
                 test.require_funds(Player::p1, startingFunds);
-                test.require_phase(TurnPhase::WaitingForTurnEnd);
             }
         }
     }

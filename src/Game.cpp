@@ -7,6 +7,139 @@ using namespace monopoly;
 #include<tuple>
 using namespace std::chrono_literals;
 
+
+namespace
+{
+
+template<typename INPUT>
+void process_input(GameState& state, int playerIndex, INPUT const& input);
+
+template<>
+void process_input(GameState &state, int playerIndex, RollInput const& input) {
+    if (state.check_if_player_is_allowed_to_roll(playerIndex)) {
+        state.player_action_roll(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, BuyPropertyInput const& input) {
+    if (state.check_if_player_is_allowed_to_buy_property(playerIndex)) {
+        state.player_action_buy_property(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, AuctionPropertyInput const& input) {
+    if (state.check_if_player_is_allowed_to_auction_property(playerIndex)) {
+        state.player_action_auction_property(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, UnmortgagePropertiesInput const& input) {
+    for (auto property : input.properties) {
+        if (!state.check_if_player_is_allowed_to_unmortgage(playerIndex, property)) {
+            return;
+        }
+    }
+    for (auto property : input.properties) {
+        state.player_action_unmortgage(playerIndex, property);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, MortgagePropertiesInput const& input) {
+    for (auto property : input.properties) {
+        if (!state.check_if_player_is_allowed_to_mortgage(playerIndex, property)) {
+            return;
+        }
+    }
+    for (auto property : input.properties) {
+        state.player_action_mortgage(playerIndex, property);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, BuyBuildingInput const& input) {
+    if (state.check_if_player_is_allowed_to_buy_building(playerIndex, input.property)) {
+        state.player_action_buy_building(playerIndex, input.property);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, SellBuildingInput const& input) {
+    if (state.check_if_player_is_allowed_to_sell_building(playerIndex, input.property)) {
+        state.player_action_sell_building(playerIndex, input.property);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, SellAllBuildingsInput const& input) {
+    if (state.check_if_player_is_allowed_to_sell_all_buildings(playerIndex, input.group)) {
+        state.player_action_sell_all_buildings(playerIndex, input.group);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, UseGetOutOfJailFreeCardInput const& input) {
+    if (state.check_if_player_is_allowed_to_use_get_out_jail_free_card(playerIndex)) {
+        state.player_action_use_get_out_of_jail_free_card(playerIndex, input.preferredDeckType);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, PayBailInput const& input) {
+    if (state.check_if_player_is_allowed_to_pay_bail(playerIndex)) {
+        state.player_action_pay_bail(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, BidInput const& input) {
+    if (state.check_if_player_is_allowed_to_bid(playerIndex, input.amount)) {
+        state.player_action_bid(playerIndex, input.amount);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, DeclineBidInput const& input) {
+    if (state.check_if_player_is_allowed_to_decline_bid(playerIndex)) {
+        state.player_action_decline_bid(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, OfferTradeInput const& input) {
+    auto const trade = trade_from_offer_input(playerIndex, input);
+    if (state.check_if_trade_is_valid(trade)) {
+        state.player_action_offer_trade(trade);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, DeclineTradeInput const& input) {
+    if (state.check_if_player_is_allowed_to_decline_trade(playerIndex)) {
+        state.player_action_decline_trade(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, EndTurnInput const& input) {
+    if (state.check_if_player_is_allowed_to_end_turn(playerIndex)) {
+        state.player_action_end_turn(playerIndex);
+    }
+}
+
+template<>
+void process_input(GameState &state, int playerIndex, ResignInput const& input) {
+    if (state.check_if_player_is_allowed_to_resign(playerIndex)) {
+        state.player_action_resign(playerIndex);
+    }
+}
+
+}
+
+
 Game::~Game()
 {
     stop();
@@ -53,206 +186,7 @@ void Game::process_inputs() {
 }
 
 void Game::process_input(int playerIndex, Input const& input) {
-    if (state.get_controlling_player_index() != playerIndex) {
-        return;
-    }
-
-    if (auto inputPtr = std::get_if<RollInput>(&input)) {
-        process_roll_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<BuyPropertyInput>(&input)) {
-        process_buy_property_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<BuyBuildingInput>(&input)) {
-        process_buy_building_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<SellBuildingInput>(&input)) {
-        process_sell_building_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<SellAllBuildingsInput>(&input)) {
-        process_sell_all_buildings_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<UnmortgagePropertiesInput>(&input)) {
-        process_unmortgage_properties_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<MortgagePropertiesInput>(&input)) {
-        process_mortgage_properties_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<UseGetOutOfJailFreeCardInput>(&input)) {
-        process_use_get_out_of_jail_free_card_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<PayBailInput>(&input)) {
-        process_pay_bail_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<BidInput>(&input)) {
-        process_bid_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<DeclineBidInput>(&input)) {
-        process_decline_bid_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<OfferTradeInput>(&input)) {
-        process_offer_trade_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<DeclineTradeInput>(&input)) {
-        process_decline_trade_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<EndTurnInput>(&input)) {
-        process_end_turn_input(playerIndex, *inputPtr);
-    }
-    else if (auto inputPtr = std::get_if<ResignInput>(&input)) {
-        process_resign_input(playerIndex, *inputPtr);
-    }
-}
-
-void Game::process_roll_input(int playerIndex, RollInput const& input) {
-    if (!state.check_if_player_is_allowed_to_roll(playerIndex)) {
-        return;
-    }
-
-    if (setup.loadedDiceEnabled && input.loadedDiceValues != std::pair<int, int>{0, 0}) {
-        auto diceValues = input.loadedDiceValues;
-        clamp_die_value(diceValues.first);
-        clamp_die_value(diceValues.second);
-        state.force_roll(playerIndex, diceValues);
-    }
-    else {
-        state.force_random_roll(playerIndex);
-    }
-}
-
-void Game::process_buy_property_input(int playerIndex, BuyPropertyInput const& input) {
-    if (!state.check_if_player_is_allowed_to_buy_property(playerIndex)) {
-        return;
-    }
-
-    // Move checks to game state
-    auto const& player = state.get_player(playerIndex);
-    auto const space = player.position;
-    assert(space_is_property(space));
-    auto const property = space_to_property(space);
-    auto const& bank = state.get_bank();
-    assert(bank.deeds.count(property));
-    if (input.option == BuyPropertyOption::Buy) {
-        state.force_property_buy(playerIndex, property);
-    }
-    else {
-        state.force_property_auction(property);
-    }
-}
-
-void Game::process_unmortgage_properties_input(int playerIndex, UnmortgagePropertiesInput const& input) {
-    for (auto property : input.properties) {
-        if (!state.check_if_player_is_allowed_to_unmortgage(playerIndex, property)) {
-            return;
-        }
-    }
-    for (auto property : input.properties) {
-        state.force_unmortgage(property);
-    }
-}
-
-void Game::process_mortgage_properties_input(int playerIndex, MortgagePropertiesInput const& input) {
-    for (auto property : input.properties) {
-        if (!state.check_if_player_is_allowed_to_mortgage(playerIndex, property)) {
-            return;
-        }
-    }
-    for (auto property : input.properties) {
-        state.force_mortgage(property);
-    }
-}
-
-void Game::process_buy_building_input(int playerIndex, BuyBuildingInput const& input) {
-    if (!state.check_if_player_is_allowed_to_buy_building(playerIndex, input.property)) {
-        return;
-    }
-
-    state.force_buy_building(input.property);
-}
-
-void Game::process_sell_building_input(int playerIndex, SellBuildingInput const& input) {
-    if (!state.check_if_player_is_allowed_to_sell_building(playerIndex, input.property)) {
-        return;
-    }
-
-    state.force_sell_building(input.property);
-}
-
-void Game::process_sell_all_buildings_input(int playerIndex, SellAllBuildingsInput const& input) {
-    if (!state.check_if_player_is_allowed_to_sell_all_buildings(playerIndex, input.group)) {
-        return;
-    }
-
-    state.force_sell_all_buildings(input.group);
-}
-
-void Game::process_use_get_out_of_jail_free_card_input(int playerIndex, UseGetOutOfJailFreeCardInput const& input) {
-    if (!state.check_if_player_is_allowed_to_use_get_out_jail_free_card(playerIndex)) {
-        return;
-    }
-
-    state.force_use_get_out_of_jail_free_card(playerIndex, input.preferredDeckType);
-}
-
-void Game::process_pay_bail_input(int playerIndex, PayBailInput const& input) {
-    if (!state.check_if_player_is_allowed_to_pay_bail(playerIndex)) {
-        return;
-    }
-
-    state.force_pay_bail(playerIndex);
-}
-
-void Game::process_bid_input(int playerIndex, BidInput const& input) {
-    if (!state.check_if_player_is_allowed_to_bid(playerIndex, input.amount)) {
-        return;
-    }
-
-    state.force_bid(playerIndex, input.amount);
-}
-
-void Game::process_decline_bid_input(int playerIndex, DeclineBidInput const& input) {
-    if (!state.check_if_player_is_allowed_to_decline_bid(playerIndex)) {
-        return;
-    }
-
-    state.force_decline_bid(playerIndex);
-}
-
-void Game::process_offer_trade_input(int playerIndex, OfferTradeInput const& input) {
-    Trade trade;
-    trade.offeringPlayer = playerIndex;
-    trade.offer = input.offer;
-    trade.consideringPlayer = input.consideringPlayer;
-    trade.consideration = input.consideration;
-    if (!state.check_if_trade_is_valid(trade)) {
-        return;
-    }
-
-    state.force_offer_trade(trade);
-}
-
-void Game::process_decline_trade_input(int playerIndex, DeclineTradeInput const& input) {
-    if (!state.check_if_player_is_allowed_to_decline_trade(playerIndex)) {
-        return;
-    }
-
-    state.force_decline_trade(playerIndex);
-}
-
-void Game::process_end_turn_input(int playerIndex, EndTurnInput const& input) {
-    if (!state.check_if_player_is_allowed_to_end_turn(playerIndex)) {
-        return;
-    }
-
-    state.force_turn_start(state.get_next_player_index());
-}
-
-void Game::process_resign_input(int playerIndex, ResignInput const& input) {
-    if (!state.check_if_player_is_allowed_to_resign(playerIndex)) {
-        return;
-    }
-
-    state.force_resign(playerIndex);
+    std::visit([=](auto&& i) { ::process_input(state, playerIndex, i); }, input);
 }
 
 void Game::start() {

@@ -184,10 +184,10 @@ namespace monopoly
                 queue_use_get_out_of_jail_free_card_input(activePlayer);
                 break;
             case buyOption:
-                queue_purchase_property_input(activePlayer, BuyPropertyOption::Buy);
+                queue_buy_property_input(activePlayer);
                 break;
             case auctionOption:
-                queue_purchase_property_input(activePlayer, BuyPropertyOption::Auction);
+                queue_auction_property_input(activePlayer);
                 break;
             case endTurnOption:
                 queue_end_turn_input(activePlayer);
@@ -205,8 +205,11 @@ namespace monopoly
         void queue_roll_input(int playerIndex) {
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, RollInput {} });
         }
-        void queue_purchase_property_input(int playerIndex, BuyPropertyOption option) {
-            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput { option } });
+        void queue_buy_property_input(int playerIndex) {
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, BuyPropertyInput {} });
+        }
+        void queue_auction_property_input(int playerIndex) {
+            inputBuffer.push(PlayerIndexInputPair{ playerIndex, AuctionPropertyInput {} });
         }
         void queue_use_get_out_of_jail_free_card_input(int playerIndex) {
             inputBuffer.push(PlayerIndexInputPair{ playerIndex, UseGetOutOfJailFreeCardInput {} });

@@ -29,7 +29,10 @@ namespace monopoly
         // rules and cheating a bit with the dice.
 
         inline void set_active_player(int playerIndex) {
-            change_state(std::bind(&GameState::force_turn_start, std::placeholders::_1, playerIndex));
+            change_state(std::bind(&GameState::force_start_turn, std::placeholders::_1, playerIndex));
+        }
+        inline void roll(int playerIndex, int d6a, int d6b) {
+            change_state(std::bind(&GameState::force_roll, std::placeholders::_1, playerIndex, std::make_pair(d6a, d6b)));
         }
         inline void move_player(int playerIndex, Space space) {
             change_state(std::bind(&GameState::force_position, std::placeholders::_1, playerIndex, space));
@@ -62,11 +65,6 @@ namespace monopoly
         inline void roll() {
             auto const pi = game.get_state().get_active_player_index();
             interface.roll_dice(pi);
-            game.process();
-        }
-        inline void roll(int a, int b) {
-            auto const pi = game.get_state().get_active_player_index();
-            interface.roll_loaded_dice(pi, { a, b });
             game.process();
         }
         inline void buy_property() {
@@ -180,6 +178,9 @@ namespace monopoly
         }
         inline void require_phase(TurnPhase phase) {
             REQUIRE(game.get_state().get_turn_phase() == phase);
+        }
+        inline void require_not_phase(TurnPhase phase) {
+            REQUIRE(game.get_state().get_turn_phase() != phase);
         }
         inline void require_active_player(int playerIndex) {
             REQUIRE(game.get_state().get_active_player_index() == playerIndex);

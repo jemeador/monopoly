@@ -16,9 +16,7 @@ SCENARIO("When a player can't afford to pay a debt, they must acquire funds or b
         test.give_deed(Player::p2, Property::Blue_2);
 
         WHEN("player 1 lands on Boardwalk") {
-            test.move_player(Player::p1, Space::Railroad_4);
-            test.set_active_player(Player::p1);
-            test.roll(1,3);
+            test.land_on_space(Player::p1, Space::Blue_2);
 
             THEN("player 1 must settle debts") {
                 test.require_phase(TurnPhase::WaitingForDebtSettlement);
@@ -34,7 +32,7 @@ SCENARIO("When a player can't afford to pay a debt, they must acquire funds or b
                 test.propose_trade(reciprocal_trade(trade));
 
                 THEN("The debt is settled") {
-                    test.require_phase(TurnPhase::WaitingForTurnEnd);
+                    test.require_not_phase(TurnPhase::WaitingForDebtSettlement);
                 }
             }
 

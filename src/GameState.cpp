@@ -292,6 +292,17 @@ bool GameState::check_if_player_is_allowed_to_pay_bail(int actorIndex) const {
 }
 
 bool GameState::check_if_player_is_allowed_to_buy_property(int actorIndex) const {
+    if (!check_if_player_is_allowed_to_auction_property(actorIndex)) {
+        return false;
+    }
+    auto const landedOnProperty = space_to_property(players[actorIndex].position);
+    if (players[actorIndex].funds < price_of_property(landedOnProperty)) {
+        return false;
+    }
+    return true;
+}
+
+bool GameState::check_if_player_is_allowed_to_auction_property(int actorIndex) const {
     if (phase != TurnPhase::WaitingForBuyPropertyInput) {
         return false;
     }
@@ -305,9 +316,6 @@ bool GameState::check_if_player_is_allowed_to_buy_property(int actorIndex) const
     }
     assert(!get_property_owner_index(landedOnProperty).has_value());
     if (get_property_owner_index(landedOnProperty).has_value()) {
-        return false;
-    }
-    if (players[actorIndex].funds < price_of_property(landedOnProperty)) {
         return false;
     }
     return true;
@@ -556,14 +564,165 @@ bool GameState::check_if_player_can_pay_closing_costs(int playerIndex, Promise l
     return liquidValue >= 0;
 }
 
-void GameState::force_turn_start(int playerIndex) {
+void GameState::player_action_roll(int playerIndex) {
+    force_roll(playerIndex, random_dice_roll());
+    resolve_game_state();
+}
+
+void GameState::player_action_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType) {
+    assert(check_if_player_is_allowed_to_use_get_out_jail_free_card(playerIndex));
+    auto& player = players[playerIndex];
+    if (player.turnsRemainingInJail == 0)
+        return;
+    if (player.getOutOfJailFreeCards.size() == 0)
+        return;
+    auto const usedDeckType = (player.getOutOfJailFreeCards.count(preferredDeckType))
+        ? preferredDeckType
+        : *player.getOutOfJailFreeCards.begin();
+
+    std::cout << player_name(playerIndex) << " used a " << to_string(usedDeckType) << " Get Out of Jail Free card" << std::endl;
+    force_return_get_out_of_jail_free_card(playerIndex, usedDeckType);
+    force_leave_jail(playerIndex);
+    resolve_game_state();
+}
+
+void GameState::player_action_pay_bail(int playerIndex) {
+    assert(check_if_player_is_allowed_to_pay_bail(playerIndex));
+    force_pay_bail(playerIndex);
+    resolve_game_state();
+}
+
+void GameState::player_action_buy_property(int playerIndex) {
+    assert(check_if_player_is_allowed_to_buy_property(playerIndex));
+    auto const landedOnProperty = space_to_property(players[playerIndex].position);
+    force_subtract_funds(playerIndex, price_of_property(landedOnProperty));
+    force_give_deed(playerIndex, landedOnProperty);
+    pendingPurchaseDecision = false;
+    resolve_game_state();
+}
+
+void GameState::player_action_auction_property(int playerIndex) {
+    assert(check_if_player_is_allowed_to_auction_property(playerIndex));
+    auto const landedOnProperty = space_to_property(players[playerIndex].position);
+    propertiesPendingAuction.push(landedOnProperty);
+    pendingPurchaseDecision = false;
+    resolve_game_state();
+}
+
+void GameState::player_action_mortgage(int playerIndex, Property property) {
+    assert(check_if_player_is_allowed_to_mortgage(playerIndex, property));
+    force_set_mortgaged(property, true);
+    force_add_funds(playerIndex, mortgage_value_of_property(property));
+    resolve_game_state();
+}
+
+void GameState::player_action_unmortgage(int playerIndex, Property property) {
+    assert(check_if_player_is_allowed_to_unmortgage(playerIndex, property));
+    force_set_mortgaged(property, false);
+    force_subtract_funds(playerIndex, unmortgage_price_of_property(property));
+    resolve_game_state();
+}
+
+void GameState::player_action_buy_building(int playerIndex, Property property) {
+    assert(check_if_player_is_allowed_to_buy_building(playerIndex, property));
+    force_add_building(property);
+    force_subtract_funds(playerIndex, price_per_house_on_property(property));
+    resolve_game_state();
+}
+
+void GameState::player_action_sell_building(int playerIndex, Property property) {
+    assert(check_if_player_is_allowed_to_sell_building(playerIndex, property));
+    force_remove_building(property);
+    force_add_funds(playerIndex, sell_price_per_house_on_property(property));
+    resolve_game_state();
+}
+
+void GameState::player_action_sell_all_buildings(int playerIndex, PropertyGroup group) { 
+    assert(check_if_player_is_allowed_to_sell_all_buildings(playerIndex, group));
+    force_sell_all_buildings(playerIndex, group);
+    resolve_game_state();
+}
+
+void GameState::player_action_bid(int playerIndex, int amount) {
+    assert(check_if_player_is_allowed_to_bid (playerIndex, amount));
+    currentAuction->highestBid = amount;
+    currentAuction->biddingOrder.pop();
+    currentAuction->biddingOrder.push(playerIndex);
+    resolve_game_state();
+}
+
+void GameState::player_action_decline_bid(int playerIndex) {
+    assert(check_if_player_is_allowed_to_decline_bid (playerIndex));
+    currentAuction->biddingOrder.pop();
+    resolve_game_state();
+}
+
+void GameState::player_action_offer_trade(Trade trade) {
+    assert(check_if_trade_is_valid (trade));
+
+    if (pendingTradeAgreement && trades_are_reciprocal(trade, *pendingTradeAgreement)) {
+        pendingTradeAgreement = {};
+        force_trade(trade);
+    }
+    else {
+        pendingTradeAgreement = trade;
+    }
+    resolve_game_state();
+}
+
+void GameState::player_action_decline_trade(int playerIndex) {
+    assert(check_if_player_is_allowed_to_decline_trade(playerIndex));
+    pendingTradeAgreement = {};
+    resolve_game_state();
+}
+
+void GameState::player_action_end_turn(int playerIndex) {
+    assert(check_if_player_is_allowed_to_end_turn(playerIndex));
+    force_start_turn(get_next_player_index());
+    resolve_game_state();
+}
+
+void GameState::player_action_resign(int resigneeIndex) {
+    assert(check_if_player_is_allowed_to_resign(resigneeIndex));
+    std::optional<int> creditor;
+    for (auto debtIt = pendingDebtSettlements.begin(); debtIt != pendingDebtSettlements.end();) {
+        if (debtIt->debtor == resigneeIndex) {
+            if (debtIt->creditor) {
+                creditor = debtIt->creditor;
+                pendingDebtSettlements.erase(debtIt++);
+                continue;
+            }
+        }
+        ++debtIt;
+    }
+    if (creditor) {
+        force_bankrupt(resigneeIndex, *creditor);
+    }
+    else {
+		force_bankrupt(resigneeIndex);
+    }
+    if (check_if_player_is_allowed_to_decline_trade (resigneeIndex)) {
+        player_action_decline_trade(resigneeIndex);
+    }
+    if (check_if_player_is_allowed_to_decline_bid(resigneeIndex)) {
+        player_action_decline_bid(resigneeIndex);
+    }
+    if (activePlayerIndex == resigneeIndex) {
+        force_finish_turn();
+        force_start_turn(get_next_player_index());
+    }
+    players[resigneeIndex].eliminated = true;
+	resolve_game_state();
+}
+
+void GameState::force_start_turn(int playerIndex) {
     ++turn;
     pendingRoll = true;
     activePlayerIndex = playerIndex;
     resolve_game_state();
 }
 
-void GameState::force_turn_end() {
+void GameState::force_finish_turn() {
     doublesStreak = 0;
     pendingRoll = false;
     resolve_game_state();
@@ -605,15 +764,16 @@ void GameState::force_go_to_jail(int playerIndex) {
     if (players[playerIndex].turnsRemainingInJail != MaxJailTurns)
         std::cout << player_name(playerIndex) << " went to jail!" << std::endl;
     players[playerIndex].turnsRemainingInJail = MaxJailTurns;
-    force_turn_end();
+    force_finish_turn();
+}
+
+void GameState::force_pay_bail(int playerIndex) {
+    force_subtract_funds(playerIndex, BailCost);
+    force_leave_jail(playerIndex);
 }
 
 void GameState::force_leave_jail(int playerIndex) {
     players[playerIndex].turnsRemainingInJail = 0;
-}
-
-void GameState::force_random_roll(int playerIndex) {
-    force_roll(playerIndex, random_dice_roll());
 }
 
 void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
@@ -642,7 +802,7 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
             t -= 1;
             if (t > 0) {
                 std::cout << player_name(playerIndex) << " is stuck in jail" << std::endl;
-                force_turn_end();
+                force_finish_turn();
                 return;
             }
             else {
@@ -781,20 +941,6 @@ void GameState::force_luxury_tax(int playerIndex) {
     force_subtract_funds(playerIndex, tax);
 }
 
-void GameState::force_property_buy(int playerIndex, Property property) {
-    std::cout << "Purchasing property" << std::endl;
-    force_subtract_funds(playerIndex, price_of_property(property));
-    force_give_deed(playerIndex, property);
-    pendingPurchaseDecision = false;
-    resolve_game_state();
-}
-
-void GameState::force_property_auction(Property property) {
-    propertiesPendingAuction.push(property);
-    pendingPurchaseDecision = false;
-    resolve_game_state();
-}
-
 void GameState::force_give_deed(int playerIndex, Property deed) {
     auto const countErased = bank.deeds.erase(deed);
     assert(countErased == 1);
@@ -823,23 +969,6 @@ void GameState::force_transfer_deeds(int fromPlayerIndex, int toPlayerIndex, std
         force_transfer_deed(fromPlayerIndex, toPlayerIndex, deed);
 }
 
-void GameState::force_mortgage(Property property) {
-    auto const ownerOpt = get_property_owner_index(property);
-    assert(ownerOpt);
-    auto const wasMortgaged = mortgagedProperties.insert(property).second;
-    assert(wasMortgaged);
-    force_add_funds(*ownerOpt, mortgage_value_of_property(property));
-    resolve_game_state();
-}
-
-void GameState::force_unmortgage(Property property) {
-    auto const ownerOpt = get_property_owner_index(property);
-    assert(ownerOpt);
-    auto const wasMortgaged = mortgagedProperties.erase(property);
-    assert(wasMortgaged);
-    force_subtract_funds(*ownerOpt, unmortgage_price_of_property(property));
-}
-
 void GameState::force_set_mortgaged(Property property, bool mortgaged) {
     if (mortgaged) {
         mortgagedProperties.insert(property);
@@ -849,22 +978,7 @@ void GameState::force_set_mortgaged(Property property, bool mortgaged) {
     }
 }
 
-void GameState::force_buy_building(Property property) {
-    force_add_building(property);
-    auto const ownerOpt = get_property_owner_index(property);
-    assert(ownerOpt);
-    force_subtract_funds(*ownerOpt, price_per_house_on_property(property));
-}
-
-void GameState::force_sell_building(Property property) {
-    force_remove_building(property);
-    auto const ownerOpt = get_property_owner_index(property);
-    assert(ownerOpt);
-    force_add_funds(*ownerOpt, sell_price_per_house_on_property(property));
-    resolve_game_state();
-}
-
-void GameState::force_sell_all_buildings(PropertyGroup group) { 
+void GameState::force_sell_all_buildings(int playerIndex, PropertyGroup group) {
     auto const properties = properties_in_group(group);
     for (auto property : properties) {
         auto &buildingLevel = buildingLevels[property];
@@ -946,21 +1060,6 @@ void GameState::force_transfer_get_out_of_jail_free_cards(int fromPlayerIndex, i
     }
 }
 
-void GameState::force_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType) {
-    auto& player = players[playerIndex];
-    if (player.turnsRemainingInJail == 0)
-        return;
-    if (player.getOutOfJailFreeCards.size() == 0)
-        return;
-    auto const usedDeckType = (player.getOutOfJailFreeCards.count(preferredDeckType))
-        ? preferredDeckType
-        : *player.getOutOfJailFreeCards.begin();
-
-    std::cout << player_name(playerIndex) << " used a " << to_string(usedDeckType) << " Get Out of Jail Free card" << std::endl;
-    force_return_get_out_of_jail_free_card(playerIndex, usedDeckType);
-    force_leave_jail(playerIndex);
-}
-
 void GameState::force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType) {
     auto& player = players[playerIndex];
     player.getOutOfJailFreeCards.erase(deckType);
@@ -973,16 +1072,11 @@ void GameState::force_return_get_out_of_jail_free_cards(int playerIndex) {
     }
 }
 
-void GameState::force_pay_bail(int playerIndex) {
-    force_subtract_funds(playerIndex, BailCost);
-    force_leave_jail(playerIndex);
-}
-
 void GameState::force_bankrupt(int debtorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     for (auto deed : debtor.deeds) {
         if (get_building_level(deed) > 0) {
-            force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
+            force_sell_all_buildings(debtorPlayerIndex, property_group(deed)); // selling all at once guarantees tearing down evenly
         }
     }
     for (auto property : debtor.deeds) {
@@ -997,44 +1091,12 @@ void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     for (auto deed : debtor.deeds) {
         if (get_building_level(deed) > 0) {
-            force_sell_all_buildings(property_group(deed)); // selling all at once guarantees tearing down evenly
+            force_sell_all_buildings(debtorPlayerIndex, property_group(deed)); // selling all at once guarantees tearing down evenly
         }
     }
     force_transfer_funds(debtorPlayerIndex, creditorPlayerIndex, debtor.funds); // likely negative
     force_transfer_deeds(debtorPlayerIndex, creditorPlayerIndex, debtor.deeds);
     force_transfer_get_out_of_jail_free_cards(debtorPlayerIndex, creditorPlayerIndex);
-}
-
-void GameState::force_resign(int resigneeIndex) {
-    std::optional<int> creditor;
-    for (auto debtIt = pendingDebtSettlements.begin(); debtIt != pendingDebtSettlements.end();) {
-        if (debtIt->debtor == resigneeIndex) {
-            if (debtIt->creditor) {
-                creditor = debtIt->creditor;
-                pendingDebtSettlements.erase(debtIt++);
-                continue;
-            }
-        }
-        ++debtIt;
-    }
-    if (creditor) {
-        force_bankrupt(resigneeIndex, *creditor);
-    }
-    else {
-		force_bankrupt(resigneeIndex);
-    }
-    if (check_if_player_is_allowed_to_decline_trade (resigneeIndex)) {
-        force_decline_trade(resigneeIndex);
-    }
-    if (check_if_player_is_allowed_to_decline_bid(resigneeIndex)) {
-        force_decline_bid(resigneeIndex);
-    }
-    if (activePlayerIndex == resigneeIndex) {
-        force_turn_end();
-        force_turn_start(get_next_player_index ());
-    }
-    players[resigneeIndex].eliminated = true;
-	resolve_game_state();
 }
 
 void GameState::force_property_offer_prompt(int playerIndex, Property property) {
@@ -1059,38 +1121,6 @@ void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayer
     pendingDebtSettlements.push_back(debt);
 }
 
-void GameState::force_bid(int playerIndex, int amount) {
-    assert(check_if_player_is_allowed_to_bid (playerIndex, amount));
-    currentAuction->highestBid = amount;
-    currentAuction->biddingOrder.pop();
-    currentAuction->biddingOrder.push(playerIndex);
-    resolve_game_state();
-}
-
-void GameState::force_decline_bid(int playerIndex) {
-    assert(check_if_player_is_allowed_to_decline_bid (playerIndex));
-    currentAuction->biddingOrder.pop();
-    resolve_game_state();
-}
-
-void GameState::force_offer_trade(Trade trade) {
-    assert(check_if_trade_is_valid (trade));
-
-    if (pendingTradeAgreement && trades_are_reciprocal(trade, *pendingTradeAgreement)) {
-        pendingTradeAgreement = {};
-        force_trade(trade);
-    }
-    else {
-        pendingTradeAgreement = trade;
-    }
-    resolve_game_state();
-}
-
-void GameState::force_decline_trade(int playerIndex) {
-    assert(check_if_player_is_allowed_to_decline_trade(playerIndex));
-    pendingTradeAgreement = {};
-    resolve_game_state();
-}
 void GameState::force_trade(Trade trade) {
     force_transfer_promise(trade.offeringPlayer, trade.consideringPlayer, trade.offer);
     force_transfer_promise(trade.consideringPlayer, trade.offeringPlayer, trade.consideration); // Seems a bit silly that you can trade cash for cash
@@ -1137,7 +1167,7 @@ void GameState::resolve_game_state() {
         resolve_auction_sale();
     }
     else if (!propertiesPendingAuction.empty()) {
-        queue_auction(propertiesPendingAuction.front());
+        resolve_queued_auction(propertiesPendingAuction.front());
     }
     else if (!pendingAcquisitions.empty()) {
         phase = TurnPhase::WaitingForAcquisitionManagement;
@@ -1178,7 +1208,7 @@ void GameState::resolve_auction() {
         }
         else {
             std::cout << player_name(nextBidderIndex) << " can't afford to bid more than " << currentAuction->highestBid << std::endl;
-            force_decline_bid(nextBidderIndex);
+            player_action_decline_bid(nextBidderIndex);
             resolve_game_state();
         }
     }
@@ -1207,7 +1237,7 @@ void GameState::resolve_auction_sale() {
     resolve_game_state();
 }
 
-void GameState::queue_auction(Property property) {
+void GameState::resolve_queued_auction(Property property) {
     std::cout << "Auctioning property" << to_string (property) << std::endl;
     currentAuction = Auction{};
     // Determine order of auction
