@@ -1,4 +1,4 @@
-#include "Strings.h"
+#include "DisplayStrings.h"
 using namespace monopoly;
 
 #include "nlohmann/json.hpp"
@@ -13,7 +13,9 @@ namespace {
         static json const strings = []() {
             try {
                 std::string const path(DATA_INSTALL_PREFIX);
-                std::ifstream i(path + "strings.json");
+                auto const filePath = path + "strings.json";
+                std::ifstream i(filePath);
+                std::cout << "Reading display strings from " << filePath << std::endl;
                 json j;
                 i >> j;
                 return j;

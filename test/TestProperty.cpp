@@ -1,5 +1,5 @@
 #include "Test.h"
-#include "Strings.h"
+#include "DisplayStrings.h"
 using namespace monopoly;
 
 #include "catch2/catch.hpp"

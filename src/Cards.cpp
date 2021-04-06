@@ -1,6 +1,6 @@
 #include "Cards.h"
 #include "GameState.h"
-#include "Strings.h"
+#include "DisplayStrings.h"
 #include "Board.h"
 using namespace monopoly;
 

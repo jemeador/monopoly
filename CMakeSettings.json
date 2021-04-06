@@ -19,18 +19,6 @@
       ]
     },
     {
-      "name": "WebAssembly",
-      "generator": "Ninja",
-      "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "CC=emcc CXX=em++",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x64" ],
-      "variables": []
-    },
-    {
       "name": "x64-Clang-Debug",
       "generator": "Ninja",
       "configurationType": "Debug",
@@ -41,6 +29,16 @@
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "clang_cl_x64_x64" ],
       "variables": []
+    },
+    {
+      "name": "WebAssembly",
+      "generator": "MinGW Makefiles",
+      "configurationType": "Debug",
+      "environments": [ {"VERBOSE": "1"} ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeToolchain": "E:\\Code\\emsdk\\upstream\\emscripten\\cmake\\Modules\\Platform\\Emscripten.cmake",
+      "cmakeCommandArgs": "-DCMAKE_CXX_FLAGS:STRING=\"-fexceptions --embed-file=${projectDir}\\src\\share\\strings.json@share\\strings.json\""
     }
   ]
 }

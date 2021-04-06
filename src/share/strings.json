@@ -1,185 +1,185 @@
 {
-    "labels": {
-        "CommunityChest": "Community Chest",
-        "Chance": "Chance",
-        "Hotel": "Hotel",
-        "House": "House",
-		"Brown": "Brown",
-		"LightBlue": "LightBlue",
-		"Magenta": "Magenta",
-		"Orange": "Orange",
-		"Red": "Red",
-		"Yellow": "Yellow",
-		"Green": "Green",
-		"Blue": "Blue",
-		"Utility": "Utility",
-		"Railroad": "Railroad",
-        "Go": "GO",
-        "Jail": "Jail",
-        "Brown_1": "Mediterranean Avenue",
-        "Brown_2": "Baltic Avenue",
-        "LightBlue_1": "Oriental Avenue",
-        "LightBlue_2": "Vermont Avenue",
-        "LightBlue_3": "Connecticut Avenue",
-        "Magenta_1": "St. Charles Place",
-        "Magenta_2": "States Avenue",
-        "Magenta_3": "Virginia Avenue",
-        "Orange_1": "St. James Place",
-        "Orange_2": "Tennessee Avenue",
-        "Orange_3": "New York Avenue",
-        "Red_1": "Kentucky Avenue",
-        "Red_2": "Indiana Avenue",
-        "Red_3": "Illinois Avenue",
-        "Yellow_1": "Atlantic Avenue",
-        "Yellow_2": "Ventnor Avenue",
-        "Yellow_3": "Marvin Gardens",
-        "Green_1": "Pacific Avenue",
-        "Green_2": "North Carolina Avenue",
-        "Green_3": "Pennsylvania Avenue",
-        "Blue_1": "Park Place",
-        "Blue_2": "Boardwalk",
-        "Utility_1": "Electric Company",
-        "Utility_2": "Water Works",
-        "Railroad_1": "Reading Railroad",
-        "Railroad_2": "Pennsylvania Railroad",
-        "Railroad_3": "B. & O. Railroad",
-        "Railroad_4": "Short Line",
-		"Chance_1": "Chance",
-		"Chance_2": "Chance",
-		"Chance_3": "Chance",
-		"CommunityChest_1": "Community Chest",
-		"CommunityChest_2": "Community Chest",
-		"CommunityChest_3": "Community Chest",
-		"FreeParking": "Free Parking",
-		"GoToJail": "Go To Jail",
-		"IncomeTax": "Income Tax",
-		"LuxuryTax": "Luxury Tax"
-    },
+  "labels": {
+    "CommunityChest": "Community Chest",
+    "Chance": "Chance",
+    "Hotel": "Hotel",
+    "House": "House",
+    "Brown": "Brown",
+    "LightBlue": "LightBlue",
+    "Magenta": "Magenta",
+    "Orange": "Orange",
+    "Red": "Red",
+    "Yellow": "Yellow",
+    "Green": "Green",
+    "Blue": "Blue",
+    "Utility": "Utility",
+    "Railroad": "Railroad",
+    "Go": "GO",
+    "Jail": "Jail",
+    "Brown_1": "Mediterranean Avenue",
+    "Brown_2": "Baltic Avenue",
+    "LightBlue_1": "Oriental Avenue",
+    "LightBlue_2": "Vermont Avenue",
+    "LightBlue_3": "Connecticut Avenue",
+    "Magenta_1": "St. Charles Place",
+    "Magenta_2": "States Avenue",
+    "Magenta_3": "Virginia Avenue",
+    "Orange_1": "St. James Place",
+    "Orange_2": "Tennessee Avenue",
+    "Orange_3": "New York Avenue",
+    "Red_1": "Kentucky Avenue",
+    "Red_2": "Indiana Avenue",
+    "Red_3": "Illinois Avenue",
+    "Yellow_1": "Atlantic Avenue",
+    "Yellow_2": "Ventnor Avenue",
+    "Yellow_3": "Marvin Gardens",
+    "Green_1": "Pacific Avenue",
+    "Green_2": "North Carolina Avenue",
+    "Green_3": "Pennsylvania Avenue",
+    "Blue_1": "Park Place",
+    "Blue_2": "Boardwalk",
+    "Utility_1": "Electric Company",
+    "Utility_2": "Water Works",
+    "Railroad_1": "Reading Railroad",
+    "Railroad_2": "Pennsylvania Railroad",
+    "Railroad_3": "B. & O. Railroad",
+    "Railroad_4": "Short Line",
+    "Chance_1": "Chance",
+    "Chance_2": "Chance",
+    "Chance_3": "Chance",
+    "CommunityChest_1": "Community Chest",
+    "CommunityChest_2": "Community Chest",
+    "CommunityChest_3": "Community Chest",
+    "FreeParking": "Free Parking",
+    "GoToJail": "Go To Jail",
+    "IncomeTax": "Income Tax",
+    "LuxuryTax": "Luxury Tax"
+  },
 
-    "cards": {
-        "Chance_AdvanceToBlue2": {
-            "flavorText": "",
-            "effectText": "Advance to $${Blue_2}"
-        },
-        "Chance_AdvanceToGo": {
-            "flavorText": "",
-            "effectText": "Advance to $${Go} (Collect $200)"
-        },
-        "Chance_AdvanceToMagenta1": {
-            "flavorText": "",
-            "effectText": "Advance to $${Magenta_1}"
-        },
-        "Chance_AdvanceToNearestRailroad": {
-            "flavorText": "",
-            "effectText": "Advance to nearest $${Railroad}. Pay double rent if rent is owed."
-        },
-        "Chance_AdvanceToNearestUtility": {
-            "flavorText": "",
-            "effectText": "Advance to nearest $${Utility}. Pay 10 times the sum of a random dice roll instead of rent if rent is owed"
-        },
-        "Chance_AdvanceToRailroad1": {
-            "flavorText": "",
-            "effectText": "Advance to $${Railroad_1}"
-        },
-        "Chance_AdvanceToRed3": {
-            "flavorText": "",
-            "effectText": "Advance to $${Red_3}"
-        },
-        "Chance_Gain150": {
-            "flavorText": "",
-            "effectText": "Collect $150"
-        },
-        "Chance_Gain50": {
-            "flavorText": "",
-            "effectText": "Collect $50"
-        },
-        "Chance_GetOutOfJailFree": {
-            "flavorText": "This card may be kept until needed or sold",
-            "effectText": "Get out of $${Jail} free"
-        },
-        "Chance_GoBack3Spaces": {
-            "flavorText": "",
-            "effectText": "Go back 3 spaces"
-        },
-        "Chance_GoToJail": {
-            "flavorText": "",
-            "effectText": "Go directly to $${Jail}. Do not pass $${Go}. Do not collect $200"
-        },
-        "Chance_Pay15": {
-            "flavorText": "",
-            "effectText": "Pay $15"
-        },
-        "Chance_PayEachPlayer50": {
-            "flavorText": "",
-            "effectText": "Pay each player $50"
-        },
-        "Chance_Repairs": {
-            "flavorText": "",
-            "effectText": "Pay $25 per $${House}. Pay $100 per $${Hotel}"
-        },
-        "CommunityChest_AdvanceToGo": {
-            "flavorText": "",
-            "effectText": "Advance to $${Go} (Collect $200)"
-        },
-        "CommunityChest_CollectFromEachPlayer50": {
-            "flavorText": "",
-            "effectText": "Collect $50 from each player"
-        },
-        "CommunityChest_Gain10": {
-            "flavorText": "",
-            "effectText": "Collect $10"
-        },
-        "CommunityChest_Gain100_A": {
-            "flavorText": "",
-            "effectText": "Collect $100"
-        },
-        "CommunityChest_Gain100_B": {
-            "flavorText": "",
-            "effectText": "Collect $100"
-        },
-        "CommunityChest_Gain100_C": {
-            "flavorText": "",
-            "effectText": "Collect $100"
-        },
-        "CommunityChest_Gain20": {
-            "flavorText": "",
-            "effectText": "Collect $20"
-        },
-        "CommunityChest_Gain200": {
-            "flavorText": "",
-            "effectText": "Collect $200"
-        },
-        "CommunityChest_Gain25": {
-            "flavorText": "",
-            "effectText": "Collect $25"
-        },
-        "CommunityChest_Gain45": {
-            "flavorText": "",
-            "effectText": "Collect $45"
-        },
-        "CommunityChest_GetOutOfJailFree": {
-            "flavorText": "This card may be kept until needed or sold",
-            "effectText": "Get out of $${Jail} free"
-        },
-        "CommunityChest_GoToJail": {
-            "flavorText": "",
-            "effectText": "Go directly to $${Jail}. Do not pass $${Go}. Do not collect $200"
-        },
-        "CommunityChest_Pay100": {
-            "flavorText": "",
-            "effectText": "Pay $100"
-        },
-        "CommunityChest_Pay150": {
-            "flavorText": "",
-            "effectText": "Pay $150"
-        },
-        "CommunityChest_Pay50": {
-            "flavorText": "",
-            "effectText": "Pay $50"
-        },
-        "CommunityChest_Repairs": {
-            "flavorText": "",
-            "effectText": "Pay $40 per house. Pay $115 per hotel"
-        }
+  "cards": {
+    "Chance_AdvanceToBlue2": {
+      "flavorText": "",
+      "effectText": "Advance to $${Blue_2}"
+    },
+    "Chance_AdvanceToGo": {
+      "flavorText": "",
+      "effectText": "Advance to $${Go} (Collect $200)"
+    },
+    "Chance_AdvanceToMagenta1": {
+      "flavorText": "",
+      "effectText": "Advance to $${Magenta_1}"
+    },
+    "Chance_AdvanceToNearestRailroad": {
+      "flavorText": "",
+      "effectText": "Advance to nearest $${Railroad}. Pay double rent if rent is owed."
+    },
+    "Chance_AdvanceToNearestUtility": {
+      "flavorText": "",
+      "effectText": "Advance to nearest $${Utility}. Pay 10 times the sum of a random dice roll instead of rent if rent is owed"
+    },
+    "Chance_AdvanceToRailroad1": {
+      "flavorText": "",
+      "effectText": "Advance to $${Railroad_1}"
+    },
+    "Chance_AdvanceToRed3": {
+      "flavorText": "",
+      "effectText": "Advance to $${Red_3}"
+    },
+    "Chance_Gain150": {
+      "flavorText": "",
+      "effectText": "Collect $150"
+    },
+    "Chance_Gain50": {
+      "flavorText": "",
+      "effectText": "Collect $50"
+    },
+    "Chance_GetOutOfJailFree": {
+      "flavorText": "This card may be kept until needed or sold",
+      "effectText": "Get out of $${Jail} free"
+    },
+    "Chance_GoBack3Spaces": {
+      "flavorText": "",
+      "effectText": "Go back 3 spaces"
+    },
+    "Chance_GoToJail": {
+      "flavorText": "",
+      "effectText": "Go directly to $${Jail}. Do not pass $${Go}. Do not collect $200"
+    },
+    "Chance_Pay15": {
+      "flavorText": "",
+      "effectText": "Pay $15"
+    },
+    "Chance_PayEachPlayer50": {
+      "flavorText": "",
+      "effectText": "Pay each player $50"
+    },
+    "Chance_Repairs": {
+      "flavorText": "",
+      "effectText": "Pay $25 per $${House}. Pay $100 per $${Hotel}"
+    },
+    "CommunityChest_AdvanceToGo": {
+      "flavorText": "",
+      "effectText": "Advance to $${Go} (Collect $200)"
+    },
+    "CommunityChest_CollectFromEachPlayer50": {
+      "flavorText": "",
+      "effectText": "Collect $50 from each player"
+    },
+    "CommunityChest_Gain10": {
+      "flavorText": "",
+      "effectText": "Collect $10"
+    },
+    "CommunityChest_Gain100_A": {
+      "flavorText": "",
+      "effectText": "Collect $100"
+    },
+    "CommunityChest_Gain100_B": {
+      "flavorText": "",
+      "effectText": "Collect $100"
+    },
+    "CommunityChest_Gain100_C": {
+      "flavorText": "",
+      "effectText": "Collect $100"
+    },
+    "CommunityChest_Gain20": {
+      "flavorText": "",
+      "effectText": "Collect $20"
+    },
+    "CommunityChest_Gain200": {
+      "flavorText": "",
+      "effectText": "Collect $200"
+    },
+    "CommunityChest_Gain25": {
+      "flavorText": "",
+      "effectText": "Collect $25"
+    },
+    "CommunityChest_Gain45": {
+      "flavorText": "",
+      "effectText": "Collect $45"
+    },
+    "CommunityChest_GetOutOfJailFree": {
+      "flavorText": "This card may be kept until needed or sold",
+      "effectText": "Get out of $${Jail} free"
+    },
+    "CommunityChest_GoToJail": {
+      "flavorText": "",
+      "effectText": "Go directly to $${Jail}. Do not pass $${Go}. Do not collect $200"
+    },
+    "CommunityChest_Pay100": {
+      "flavorText": "",
+      "effectText": "Pay $100"
+    },
+    "CommunityChest_Pay150": {
+      "flavorText": "",
+      "effectText": "Pay $150"
+    },
+    "CommunityChest_Pay50": {
+      "flavorText": "",
+      "effectText": "Pay $50"
+    },
+    "CommunityChest_Repairs": {
+      "flavorText": "",
+      "effectText": "Pay $40 per house. Pay $115 per hotel"
     }
+  }
 }

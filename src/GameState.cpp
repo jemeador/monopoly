@@ -1,6 +1,6 @@
 #include"GameState.h"
 #include"Board.h"
-#include"Strings.h"
+#include"DisplayStrings.h"
 using namespace monopoly;
 
 #include<algorithm>

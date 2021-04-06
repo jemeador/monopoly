@@ -2,7 +2,6 @@
 #include"GameState.h"
 #include"Input.h"
 
-#include<atomic>
 #include<condition_variable>
 #include<future>
 #include<memory>

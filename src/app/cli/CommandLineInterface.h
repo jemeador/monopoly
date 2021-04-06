@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IInterface.h"
-#include "Strings.h"
+#include "DisplayStrings.h"
 
 #include <mutex>
 #include <queue>
