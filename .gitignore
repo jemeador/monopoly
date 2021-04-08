@@ -29,3 +29,7 @@ out/
 # =========================
 /build
 *.swp
+/build.emscripten/monopoly.js
+/build.emscripten/MonopolyCli.js
+/build.emscripten/Test_Monopoly.js
+/build.emscripten/*.wasm

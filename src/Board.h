@@ -11,7 +11,15 @@
 
 namespace monopoly
 {
-    static std::vector<int> const real_estate_table = {
+    static constexpr int NumberOfSpaces = 40;
+    static constexpr int MaxJailTurns = 3;
+    static constexpr int HotelLevel = 5;
+    static constexpr int BailCost = 50;
+    static constexpr int GoSalary = 200;
+    static constexpr double MortgageInterestRate = 0.10;
+    static constexpr int DeedTableColumns = 9;
+
+    static std::vector<int> const DeedTable = {
         //  PRC,  BLD,  RNT, RNT1, RNT2, RNT3, RNT4, RNTH,  MTG,
              60,   50,    2,   10,   30,   90,  160,  250,   30, // Brown 1
              60,   50,    4,   20,   60,  180,  320,  450,   30, // Brown 2
@@ -43,18 +51,10 @@ namespace monopoly
             150,    0,    0,    0,    0,    0,    0,    0,  75, // Utility 2
     };
 
-    static constexpr int NumberOfSpaces = 40;
-    static constexpr int MaxJailTurns = 3;
-    static constexpr int HotelLevel = 5;
-    static constexpr int BailCost = 50;
-    static constexpr int GoSalary = 200;
-    static constexpr double MortgageInterestRate = 0.10;
-
     enum class DeedField : int {
         Price = 0, PricePerHouse, Rent, Rent1, Rent2, Rent3, Rent4, RentHotel, Mortgage,
     };
     static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent));
-    static const int tableColumns = 9;
 
     enum class PropertyGroup
     {
@@ -247,10 +247,10 @@ namespace monopoly
         if (row >= all_properties().size()) {
             return 0;
         }
-        if (col >= tableColumns) {
+        if (col >= DeedTableColumns) {
             return 0;
         }
-        return real_estate_table[static_cast<size_t> (row * tableColumns + col)];
+        return DeedTable[static_cast<size_t> (row * DeedTableColumns + col)];
     }
 
 
@@ -449,11 +449,11 @@ namespace monopoly
         return *spaceIt;
     }
 
-    inline void clamp_die_value(int& val) {
+    inline int clamped_die_value(int val) {
         if (val < 1)
-            val = 1;
+            return 1;
         else if (val > 6)
-            val = 6;
+            return 6;
     }
 
     inline void assert_valid_die_value(int val) {

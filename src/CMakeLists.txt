@@ -25,10 +25,9 @@ install (
 )
 
 set(DATA_DIR "share/")
-
 # Install data file for JSON display strings
 message ("CMAKE_SYSTEM_NAME=" ${CMAKE_SYSTEM_NAME})
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+if (BUILD_WEB_SERVER)
     # Allow empscripten to preload the JSON display strings
     message ("Emscripten target system detected; setting data path to point virtual file system")
     set(DATA_INSTALL_PREFIX ${DATA_DIR})
@@ -40,8 +39,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
 		COMMAND ${CMAKE_CXX_COMPILER} --bind -o monopoly.js -Wl,--whole-archive libMonopolyEngine.a -Wl,--no-whole-archive
 		DEPENDS libMonopolyEngine.a
 	)
+	file (GLOB WEB_FILES ${CMAKE_CURRENT_BINARY_DIR}/*.wasm ${CMAKE_CURRENT_BINARY_DIR}/*.js)
+    file (COPY ${WEB_FILES} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 else ()
-    set(DATA_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/${DATA_DIR}")
+    set(DATA_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/${DATA_DIR}")
     message ("Setting install path for data files to " ${DATA_INSTALL_PREFIX})
     install (FILES ${DATA_DIR}/strings.json DESTINATION ${DATA_INSTALL_PREFIX})
 endif ()
