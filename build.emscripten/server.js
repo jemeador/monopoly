@@ -17,14 +17,12 @@ http.createServer(function (request, response) {
         response.writeHeader(200, { 'Content-Type': 'text/html' });
         fs.readFile('index.html', fileHandler);
     }
-    if (request.url.endsWith ('.js')) {
+    else if (request.url.endsWith ('.js')) {
         response.writeHeader(200, { 'Content-Type': 'text/script' });
         fs.readFile('.' + request.url, fileHandler);
     }
-    if (request.url.endsWith ('.wasm')) {
+    else if (request.url.endsWith ('.wasm')) {
         response.writeHeader(200, { 'Content-Type': 'application/wasm' });
         fs.readFile('.' + request.url, fileHandler);
-    }
-    else {
     }
 }).listen(port);
