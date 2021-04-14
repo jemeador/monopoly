@@ -193,6 +193,7 @@ void Game::start() {
     GameState newState(interface->get_setup());
     currentCycle = 0;
     std::swap(state, newState);
+    interface->update(state);
 }
 
 void Game::stop() {

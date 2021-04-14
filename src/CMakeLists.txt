@@ -34,13 +34,13 @@ if (BUILD_WEB_SERVER)
     # em++ flag --embed-file set globally in CMakeSettings.json so it applies to all .js files
 	# Custom target to generate a JS module with C++ bindings
 	add_custom_target(MonopolyJSEngine
-		ALL BYPRODUCTS monopoly.js
-		COMMENT "Generating JS/C++ bindings: monopoly.js"
-		COMMAND ${CMAKE_CXX_COMPILER} --bind -o monopoly.js -Wl,--whole-archive libMonopolyEngine.a -Wl,--no-whole-archive
+		ALL BYPRODUCTS monopoly.js monopoly.wasm
+		COMMENT "Generating JS/C++ bindings: (monopoly.{js,wasm})"
+		COMMAND ${CMAKE_CXX_COMPILER} -s DISABLE_EXCEPTION_CATCHING=0 -fexceptions --embed-file=${PROJECT_SOURCE_DIR}/src/share/strings.json@share/strings.json --bind -o monopoly.js -Wl,--whole-archive libMonopolyEngine.a -Wl,--no-whole-archive
 		DEPENDS libMonopolyEngine.a
 	)
-	file (GLOB WEB_FILES ${CMAKE_CURRENT_BINARY_DIR}/*.wasm ${CMAKE_CURRENT_BINARY_DIR}/*.js)
-    file (COPY ${WEB_FILES} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    add_custom_command (TARGET MonopolyJSEngine POST_BUILD COMMENT "Installing monopoly.js to web server directory " COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/monopoly.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/.)
+    add_custom_command (TARGET MonopolyJSEngine POST_BUILD COMMENT "Installing monopoly.wasm to web server directory " COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/monopoly.wasm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/.)
 else ()
     set(DATA_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/${DATA_DIR}")
     message ("Setting install path for data files to " ${DATA_INSTALL_PREFIX})

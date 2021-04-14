@@ -187,9 +187,9 @@ namespace monopoly
         }
         inline void require_highest_bid(int bidderIndex, int bid) {
             auto const auction = game.get_state().get_current_auction();
-            REQUIRE(auction.has_value ());
-            REQUIRE(auction->highestBid == bid);
-            REQUIRE(auction->biddingOrder.back () == bidderIndex);
+            REQUIRE(auction);
+            REQUIRE(auction.highestBid == bid);
+            REQUIRE(auction.biddingOrder.back () == bidderIndex);
         }
     };
 }

@@ -64,7 +64,7 @@ int GameState::get_controlling_player_index() const {
         case TurnPhase::WaitingForDebtSettlement:
             return pendingDebtSettlements.front ().debtor;
         case TurnPhase::WaitingForBids:
-            return currentAuction->biddingOrder.front ();
+            return currentAuction.biddingOrder.front ();
         case TurnPhase::WaitingForAcquisitionManagement:
             return pendingAcquisitions.front().recipient;
         case TurnPhase::WaitingForBuyPropertyInput:
@@ -161,7 +161,7 @@ std::map<Property, int> const& GameState::get_building_levels() const {
     return buildingLevels;
 }
 
-std::optional<Auction> GameState::get_current_auction() const {
+Auction GameState::get_current_auction() const {
     return currentAuction;
 }
 
@@ -451,11 +451,11 @@ bool GameState::check_if_player_is_allowed_to_bid(int actorIndex, int amount) co
     if (get_controlling_player_index () != actorIndex) {
         return false;
     }
-    if (amount <= currentAuction->highestBid) {
+    if (amount <= currentAuction.highestBid) {
         return false;
     }
     // Avoid letting players involuntarily bankrupt themselves by bidding too much
-    if (amount + calculate_closing_costs_on_sale(currentAuction->property) > calculate_liquid_assets_value(actorIndex)) {
+    if (amount + calculate_closing_costs_on_sale(currentAuction.property) > calculate_liquid_assets_value(actorIndex)) {
         return false;
     }
     return true;
@@ -645,15 +645,15 @@ void GameState::player_action_sell_all_buildings(int playerIndex, PropertyGroup 
 
 void GameState::player_action_bid(int playerIndex, int amount) {
     assert(check_if_player_is_allowed_to_bid (playerIndex, amount));
-    currentAuction->highestBid = amount;
-    currentAuction->biddingOrder.pop();
-    currentAuction->biddingOrder.push(playerIndex);
+    currentAuction.highestBid = amount;
+    currentAuction.biddingOrder.erase(currentAuction.biddingOrder.begin ());
+    currentAuction.biddingOrder.push_back(playerIndex);
     resolve_game_state();
 }
 
 void GameState::player_action_decline_bid(int playerIndex) {
     assert(check_if_player_is_allowed_to_decline_bid (playerIndex));
-    currentAuction->biddingOrder.pop();
+    currentAuction.biddingOrder.erase(currentAuction.biddingOrder.begin ());
     resolve_game_state();
 }
 
@@ -696,10 +696,10 @@ void GameState::player_action_resign(int resigneeIndex) {
         ++debtIt;
     }
     if (creditor) {
-        force_bankrupt(resigneeIndex, *creditor);
+        force_bankrupt_by_player(resigneeIndex, *creditor);
     }
     else {
-		force_bankrupt(resigneeIndex);
+		force_bankrupt_by_bank(resigneeIndex);
     }
     if (check_if_player_is_allowed_to_decline_trade (resigneeIndex)) {
         player_action_decline_trade(resigneeIndex);
@@ -743,7 +743,7 @@ void GameState::force_subtract_funds(int playerIndex, int funds) {
     std::cout << player_name(playerIndex) << " pays $" << funds << std::endl;
 
     if (players[playerIndex].funds < 0)
-        force_liquidate_prompt(playerIndex, -players[playerIndex].funds);
+        force_liquidate_to_pay_bank_prompt(playerIndex, -players[playerIndex].funds);
 }
 
 void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int funds) {
@@ -756,7 +756,7 @@ void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int
     std::cout << player_name(fromPlayerIndex) << " -($" << funds << ")-> " << player_name(toPlayerIndex) << std::endl;
 
     if (players[fromPlayerIndex].funds < 0)
-        force_liquidate_prompt(fromPlayerIndex, toPlayerIndex, -players[fromPlayerIndex].funds);
+        force_liquidate_to_pay_player_prompt(fromPlayerIndex, toPlayerIndex, -players[fromPlayerIndex].funds);
 }
 
 void GameState::force_go_to_jail(int playerIndex) {
@@ -1072,7 +1072,7 @@ void GameState::force_return_get_out_of_jail_free_cards(int playerIndex) {
     }
 }
 
-void GameState::force_bankrupt(int debtorPlayerIndex) {
+void GameState::force_bankrupt_by_bank(int debtorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     for (auto deed : debtor.deeds) {
         if (get_building_level(deed) > 0) {
@@ -1087,7 +1087,7 @@ void GameState::force_bankrupt(int debtorPlayerIndex) {
     force_return_get_out_of_jail_free_cards(debtorPlayerIndex);
 }
 
-void GameState::force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex) {
+void GameState::force_bankrupt_by_player(int debtorPlayerIndex, int creditorPlayerIndex) {
     auto& debtor = players[debtorPlayerIndex];
     for (auto deed : debtor.deeds) {
         if (get_building_level(deed) > 0) {
@@ -1106,14 +1106,14 @@ void GameState::force_property_offer_prompt(int playerIndex, Property property) 
     resolve_game_state();
 }
 
-void GameState::force_liquidate_prompt(int debtorPlayerIndex, int amount) {
+void GameState::force_liquidate_to_pay_bank_prompt(int debtorPlayerIndex, int amount) {
     Debt debt;
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
     pendingDebtSettlements.push_back(debt);
 }
 
-void GameState::force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount) {
+void GameState::force_liquidate_to_pay_player_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount) {
     Debt debt;
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
@@ -1160,7 +1160,7 @@ void GameState::resolve_game_state() {
     else if (!pendingDebtSettlements.empty()) {
         resolve_debt_settlements();
     }
-    else if (currentAuction.has_value()) {
+    else if (currentAuction) {
         resolve_auction();
     }
     else if (pendingAuctionSale.has_value()) {
@@ -1197,25 +1197,25 @@ void GameState::resolve_debt_settlements() {
 }
 
 void GameState::resolve_auction() {
-    auto const highestBidderIndex = currentAuction->biddingOrder.back();
-    auto const nextBidderIndex = currentAuction->biddingOrder.front();
-    std::cout << to_string (currentAuction->property) << " going to " <<
-        player_name(highestBidderIndex) << " for $" << currentAuction->highestBid << std::endl;
+    auto const highestBidderIndex = currentAuction.biddingOrder.back();
+    auto const nextBidderIndex = currentAuction.biddingOrder.front();
+    std::cout << to_string (currentAuction.property) << " going to " <<
+        player_name(highestBidderIndex) << " for $" << currentAuction.highestBid << std::endl;
     phase = TurnPhase::WaitingForBids;
-    if (currentAuction->biddingOrder.size() > 1) {
-        if (check_if_player_is_allowed_to_bid(nextBidderIndex, currentAuction->highestBid + 1)) {
+    if (currentAuction.biddingOrder.size() > 1) {
+        if (check_if_player_is_allowed_to_bid(nextBidderIndex, currentAuction.highestBid + 1)) {
             std::cout << player_name(nextBidderIndex) << ": Bid or decline?" << std::endl;
         }
         else {
-            std::cout << player_name(nextBidderIndex) << " can't afford to bid more than " << currentAuction->highestBid << std::endl;
+            std::cout << player_name(nextBidderIndex) << " can't afford to bid more than " << currentAuction.highestBid << std::endl;
             player_action_decline_bid(nextBidderIndex);
             resolve_game_state();
         }
     }
     else {
-        auto const payment = currentAuction->highestBid + calculate_closing_costs_on_sale(currentAuction->property);
+        auto const payment = currentAuction.highestBid + calculate_closing_costs_on_sale(currentAuction.property);
+        pendingAuctionSale = { highestBidderIndex, currentAuction.property };
         currentAuction = {};
-        pendingAuctionSale = { highestBidderIndex, currentAuction->property };
         force_subtract_funds(highestBidderIndex, payment);
         resolve_game_state();
     }
@@ -1242,12 +1242,12 @@ void GameState::resolve_queued_auction(Property property) {
     currentAuction = Auction{};
     // Determine order of auction
     for (int i = get_next_player_index(activePlayerIndex); i != activePlayerIndex; i = get_next_player_index(i)) {
-        currentAuction->biddingOrder.push(i);
+        currentAuction.biddingOrder.push_back(i);
     }
     // Active player starts with a bid of 0, so they go last
-    currentAuction->biddingOrder.push(activePlayerIndex);
-    currentAuction->highestBid = 0;
-    currentAuction->property = property;
+    currentAuction.biddingOrder.push_back(activePlayerIndex);
+    currentAuction.highestBid = 0;
+    currentAuction.property = property;
     propertiesPendingAuction.pop();
     resolve_game_state();
 }

@@ -7,10 +7,10 @@ project ("Monopoly")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE on)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build.emscripten)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-	set (BUILD_WEB_SERVER True)
+	set(BUILD_WEB_SERVER True)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build.emscripten)
 endif ()
 
 find_package(Git QUIET)

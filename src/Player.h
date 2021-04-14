@@ -3,6 +3,7 @@
 #include"Board.h"
 
 #include<set>
+#include<string>
 
 namespace monopoly
 {
@@ -33,14 +34,8 @@ namespace monopoly
         }
     };
 
-    inline char const* player_name(int playerIndex) {
-        switch (playerIndex) {
-        case Player::p1: return "Player 1";
-        case Player::p2: return "Player 2";
-        case Player::p3: return "Player 3";
-        case Player::p4: return "Player 4";
-        }
-        return "";
+    inline std::string player_name(int playerIndex) {
+        return "Player " + std::to_string(playerIndex + 1);
     }
 
 }

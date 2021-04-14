@@ -79,9 +79,13 @@ namespace monopoly
 
     struct Auction
     {
-        Property property;
+        Property property = Property::Invalid;
         int highestBid = 0;
-        std::queue<int> biddingOrder; // front is the next bidder's player index, back is the recent (highest) bidder
+        std::vector<int> biddingOrder; // front is the next bidder's player index, back is the recent (highest) bidder. Empty if invalid
+
+        explicit operator bool () const {
+            return ! biddingOrder.empty();
+        }
 
         bool operator== (Auction const& rhs) const {
             return
@@ -183,7 +187,7 @@ namespace monopoly
         int get_min_building_level_in_group(PropertyGroup group) const;
         int get_max_building_level_in_group(PropertyGroup group) const;
         std::map<Property, int> const& get_building_levels() const;
-        std::optional<Auction> get_current_auction() const;
+        Auction get_current_auction() const;
         int calculate_rent(Property property) const;
         int calculate_closing_costs_on_sale(Property property) const;
         int calculate_liquid_assets_value(int playerIndex) const;
@@ -280,12 +284,12 @@ namespace monopoly
         void force_return_get_out_of_jail_free_card(int playerIndex, DeckType deckType);
         void force_return_get_out_of_jail_free_cards(int playerIndex);
 
-        void force_bankrupt(int debtorPlayerIndex);
-        void force_bankrupt(int debtorPlayerIndex, int creditorPlayerIndex);
+        void force_bankrupt_by_bank(int debtorPlayerIndex);
+        void force_bankrupt_by_player(int debtorPlayerIndex, int creditorPlayerIndex);
 
         void force_property_offer_prompt(int playerIndex, Property property);
-        void force_liquidate_prompt(int debtorPlayerIndex, int amount);
-        void force_liquidate_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount);
+        void force_liquidate_to_pay_bank_prompt(int debtorPlayerIndex, int amount);
+        void force_liquidate_to_pay_player_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount);
 
         void force_trade(Trade trade);
         void force_transfer_promise(int fromPlayerIndex, int toPlayerIndex, Promise promise);
@@ -354,7 +358,7 @@ namespace monopoly
         // Handle debt settlements
         std::list<Debt> pendingDebtSettlements;
         // Handle current auction
-        std::optional<Auction> currentAuction;
+        Auction currentAuction;
         // Handle closing auction
         std::optional<std::pair<int, Property>> pendingAuctionSale;
         // Handle pending auctions

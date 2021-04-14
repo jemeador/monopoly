@@ -27,8 +27,7 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x64_x64" ],
-      "variables": []
+      "inheritEnvironments": [ "clang_cl_x64_x64" ]
     },
     {
       "name": "WebAssembly",
@@ -38,7 +37,6 @@
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeToolchain": "E:\\Code\\emsdk\\upstream\\emscripten\\cmake\\Modules\\Platform\\Emscripten.cmake",
-      "cmakeCommandArgs": "-DCMAKE_CXX_FLAGS:STRING=\"-fexceptions --bind --embed-file=${projectDir}\\src\\share\\strings.json@share\\strings.json\""
     }
   ]
 }
