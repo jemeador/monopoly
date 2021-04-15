@@ -49,12 +49,36 @@ int GameState::get_players_remaining_count() const {
     return std::count_if(players.begin(), players.end(), [](Player const& player) { return !player.eliminated; });
 }
 
-Player GameState::get_player(int playerIndex) const {
-    return players[playerIndex];
+bool GameState::get_player_eliminated(int playerIndex) const
+{
+    return players[playerIndex].eliminated;
+}
+
+int GameState::get_player_funds(int playerIndex) const
+{
+    return players[playerIndex].funds;
+}
+
+Space GameState::get_player_position(int playerIndex) const
+{
+    return players[playerIndex].position;
+}
+
+int GameState::get_player_turns_remaining_in_jail(int playerIndex) const
+{
+    return players[playerIndex].turnsRemainingInJail;
 }
 
 int GameState::get_active_player_index() const {
     return activePlayerIndex;
+}
+
+std::set<Property> GameState::get_player_deeds(int playerIndex) const {
+    return players[playerIndex].deeds;
+}
+
+std::set<DeckType> GameState::get_player_get_out_of_jail_free_cards(int playerIndex) const {
+    return players[playerIndex].getOutOfJailFreeCards;
 }
 
 int GameState::get_controlling_player_index() const {

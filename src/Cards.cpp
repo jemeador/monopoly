@@ -58,7 +58,7 @@ void monopoly::apply_card_effect(GameState& state, int playerIndex, Card card) {
             state.force_advance_to(playerIndex, Space::Magenta_1);
         };
         ret[Card::Chance_AdvanceToNearestRailroad] = [](GameState& state, int playerIndex) {
-            auto const pos = state.get_player(playerIndex).position;
+            auto const pos = state.get_player_position(playerIndex);
             auto const dest = nearest_space(pos, { Space::Railroad_1, Space::Railroad_2, Space::Railroad_3, Space::Railroad_4 });
             state.force_advance_to_without_landing(playerIndex, dest);
             auto const property = space_to_property(dest);
@@ -73,7 +73,7 @@ void monopoly::apply_card_effect(GameState& state, int playerIndex, Card card) {
             }
         };
         ret[Card::Chance_AdvanceToNearestUtility] = [](GameState& state, int playerIndex) {
-            auto const pos = state.get_player(playerIndex).position;
+            auto const pos = state.get_player_position(playerIndex);
             auto const dest = nearest_space(pos, { Space::Utility_1, Space::Utility_2 });
             state.force_advance_to_without_landing(playerIndex, dest);
             auto const property = space_to_property(dest);

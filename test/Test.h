@@ -133,21 +133,21 @@ namespace monopoly
         }
 
         inline void require_eliminated(int playerIndex, bool eliminated) {
-            REQUIRE(game.get_state().get_player(playerIndex).eliminated == eliminated);
+            REQUIRE(game.get_state().get_player_eliminated(playerIndex) == eliminated);
         }
         inline void require_position(int playerIndex, Space space) {
-            REQUIRE(game.get_state().get_player(playerIndex).position == space);
+            REQUIRE(game.get_state().get_player_position(playerIndex) == space);
         }
         inline void require_funds(int playerIndex, int funds) {
-            REQUIRE(game.get_state().get_player(playerIndex).funds == funds);
+            REQUIRE(game.get_state().get_player_funds(playerIndex) == funds);
         }
         inline void require_has_deed(int playerIndex, Property property) {
-            auto d = game.get_state().get_player(playerIndex).deeds;
+            auto d = game.get_state().get_player_deeds(playerIndex);
             REQUIRE(std::any_of(d.begin(), d.end(),
                 [property](Property p) { return p == property; }));
         }
         inline void require_does_not_have_deed(int playerIndex, Property property) {
-            auto d = game.get_state().get_player(playerIndex).deeds;
+            auto d = game.get_state().get_player_deeds(playerIndex);
             REQUIRE(std::none_of(d.begin(), d.end(),
                 [property](Property p) { return p == property; }));
         }
@@ -159,21 +159,21 @@ namespace monopoly
         }
 
         inline void require_has_get_out_of_jail_free(int playerIndex, DeckType deckType) {
-            auto c = game.get_state().get_player(playerIndex).getOutOfJailFreeCards;
+            auto c = game.get_state().get_player_get_out_of_jail_free_cards(playerIndex);
             REQUIRE(c.count(deckType) == 1);
         }
         inline void require_does_not_have_get_out_of_jail_free(int playerIndex, DeckType deckType) {
-            auto c = game.get_state().get_player(playerIndex).getOutOfJailFreeCards;
+            auto c = game.get_state().get_player_get_out_of_jail_free_cards(playerIndex);
             REQUIRE(c.count(deckType) == 0);
         }
 
         inline void require_jailed(int playerIndex, bool jailed) {
             if (jailed) {
-                REQUIRE(game.get_state().get_player(playerIndex).turnsRemainingInJail > 0);
+                REQUIRE(game.get_state().get_player_turns_remaining_in_jail (playerIndex) > 0);
                 require_position(playerIndex, Space::Jail);
             }
             else {
-                REQUIRE(game.get_state().get_player(playerIndex).turnsRemainingInJail == 0);
+                REQUIRE(game.get_state().get_player_turns_remaining_in_jail (playerIndex) == 0);
             }
         }
         inline void require_phase(TurnPhase phase) {

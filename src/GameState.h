@@ -173,7 +173,12 @@ namespace monopoly
         Bank get_bank() const;
         int get_player_count() const;
         int get_players_remaining_count() const;
-        Player get_player(int playerIndex) const;
+        bool get_player_eliminated(int playerIndex) const;
+        int get_player_funds(int playerIndex) const;
+        Space get_player_position(int playerIndex) const;
+        int get_player_turns_remaining_in_jail(int playerIndex) const;
+        std::set<Property> get_player_deeds(int playerIndex) const;
+        std::set<DeckType> get_player_get_out_of_jail_free_cards(int playerIndex) const;
         int get_active_player_index() const; // it's the active player's turn
         int get_controlling_player_index() const; // the game is waiting on input from the controlling player
         int get_next_player_index(int playerIndex = -1) const; // if -1, use activePlayerIndex

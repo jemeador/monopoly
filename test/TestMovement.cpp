@@ -7,7 +7,7 @@ using namespace monopoly;
 
 SCENARIO("On a player's turn, they roll the dice and move the indicated number of spaces", "[movement]") {
     Test test;
-    auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
+    auto const startingFunds = test.game.get_state().get_player_funds(Player::p1);
 
     GIVEN("Player 1 starts on GO") {
         test.move_player(Player::p1, Space::Go);
@@ -78,7 +78,7 @@ SCENARIO("On a player's turn, they roll doubles and get extra rolls", "[movement
 
 SCENARIO("Players can't leave jail without rolling doubles, using a GOJF card, or paying bail", "[movement]") {
     Test test;
-    auto const startingFunds = test.game.get_state().get_player(Player::p1).funds;
+    auto const startingFunds = test.game.get_state().get_player_funds(Player::p1);
 
     GIVEN("Player 1 is in jail") {
         test.jail_player(Player::p1);

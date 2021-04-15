@@ -64,10 +64,10 @@ namespace monopoly
 
         void show_waiting_for_roll_prompt() {
             auto const activePlayerIndex = state.get_active_player_index();
-            auto const activePlayer = state.get_player(activePlayerIndex);
+            auto const turnsRemainingInJail = state.get_player_turns_remaining_in_jail(activePlayerIndex);
             auto options = defaultOptions + rollOption;
-            if (activePlayer.turnsRemainingInJail > 0) {
-                if (!activePlayer.getOutOfJailFreeCards.empty()) {
+            if (turnsRemainingInJail > 0) {
+                if (!state.get_player_get_out_of_jail_free_cards (activePlayerIndex).empty()) {
                     options.push_back(gojfOption);
                 }
                 options.push_back(bailOption);
@@ -233,7 +233,7 @@ namespace monopoly
 
                 auto const space = static_cast<Space> (s);
                 for (auto p = 0; p < state.get_player_count(); ++p) {
-                    bool const playerIsAtSpace = (state.get_player(p).position == space);
+                    bool const playerIsAtSpace = (state.get_player_position(p) == space);
                     std::cout << (playerIsAtSpace ? "." : " ");
                 }
                 if (space_is_property(space)) {
@@ -274,7 +274,7 @@ namespace monopoly
                 std::cout << to_string(space) << "\n";
             }
             for (auto p = 0; p < state.get_player_count(); ++p) {
-                std::cout << player_name(p) << ": $" << state.get_player(p).funds << "\n";
+                std::cout << player_name(p) << ": $" << state.get_player_funds(p) << "\n";
             }
         }
 

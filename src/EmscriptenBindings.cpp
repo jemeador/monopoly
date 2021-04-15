@@ -251,16 +251,6 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
     constant ("Player2", Player::p2);
     constant ("Player3", Player::p3);
     constant ("Player4", Player::p4);
-
-    value_object<Player>("Player")
-        .field("eliminated", &Player::eliminated)
-        .field("funds", &Player::funds)
-        .field("position", &Player::position)
-        .field("deeds", &Player::deeds)
-        .field("turnsRemainingInJail", &Player::turnsRemainingInJail)
-        .field("getOutOfJailFreeCards", &Player::getOutOfJailFreeCards)
-    ;
-
     function("player_name", &player_name);
 
     // GameState.h
@@ -320,7 +310,10 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .function("get_bank", &GameState::get_bank)
         .function("get_player_count", &GameState::get_player_count)
         .function("get_players_remaining_count", &GameState::get_players_remaining_count)
-        .function("get_player", &GameState::get_player)
+        .function("get_player_eliminated",&GameState::get_player_eliminated)
+        .function("get_player_funds",&GameState::get_player_funds)
+        .function("get_player_position",&GameState::get_player_position)
+        .function("get_player_turns_remaining_in_jail",&GameState::get_player_turns_remaining_in_jail)
         .function("get_active_player_index", &GameState::get_active_player_index)
         .function("get_controlling_player_index", &GameState::get_controlling_player_index)
         .function("get_next_player_index", &GameState::get_next_player_index)
