@@ -54,7 +54,7 @@ namespace monopoly
     enum class DeedField : int {
         Price = 0, PricePerHouse, Rent, Rent1, Rent2, Rent3, Rent4, RentHotel, Mortgage,
     };
-    static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent));
+    static_assert (HotelLevel == static_cast<int> (DeedField::RentHotel) - static_cast<int> (DeedField::Rent), "DeedTable column alignment disrupted");
 
     enum class PropertyGroup
     {
@@ -447,13 +447,6 @@ namespace monopoly
         auto const distIt = std::min_element(begin(distances), end(distances));
         auto const spaceIt = begin(spaces) + (distIt - begin(distances));
         return *spaceIt;
-    }
-
-    inline int clamped_die_value(int val) {
-        if (val < 1)
-            return 1;
-        else if (val > 6)
-            return 6;
     }
 
     inline void assert_valid_die_value(int val) {
