@@ -62,8 +62,8 @@ void monopoly::apply_card_effect(GameState& state, int playerIndex, Card card) {
             auto const dest = nearest_space(pos, { Space::Railroad_1, Space::Railroad_2, Space::Railroad_3, Space::Railroad_4 });
             state.force_advance_to_without_landing(playerIndex, dest);
             auto const property = space_to_property(dest);
-            if (auto const ownerOpt = state.get_property_owner_index(property)) {
-                auto const owner = *ownerOpt;
+            auto const owner = state.get_property_owner_index(property);
+            if (owner != Player::None) {
                 auto const ownedGroupCount = state.get_properties_owned_in_group_by_player(owner, PropertyGroup::Railroad);
                 // Rent is doubled
                 state.force_transfer_funds(playerIndex, owner, 2 * rent_price_of_railroad(ownedGroupCount));
@@ -77,8 +77,8 @@ void monopoly::apply_card_effect(GameState& state, int playerIndex, Card card) {
             auto const dest = nearest_space(pos, { Space::Utility_1, Space::Utility_2 });
             state.force_advance_to_without_landing(playerIndex, dest);
             auto const property = space_to_property(dest);
-            if (auto const ownerOpt = state.get_property_owner_index(property)) {
-                auto const owner = *ownerOpt;
+            auto const owner = state.get_property_owner_index(property);
+            if (owner != Player::None) {
                 // Pay 10 times a random roll
                 auto const roll = state.random_dice_roll();
                 auto const sum = roll.first + roll.second;

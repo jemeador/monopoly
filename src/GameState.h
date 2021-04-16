@@ -183,7 +183,7 @@ namespace monopoly
         int get_controlling_player_index() const; // the game is waiting on input from the controlling player
         int get_next_player_index(int playerIndex = -1) const; // if -1, use activePlayerIndex
         int get_net_worth(int playerIndex) const;
-        std::optional<int> get_property_owner_index(Property property) const;
+        int get_property_owner_index(Property property) const; // -1 (Player::None) if bank owned
         bool get_property_is_mortgaged(Property property) const;
         int get_properties_owned_in_group(Property property) const;
         int get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const;

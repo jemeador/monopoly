@@ -123,6 +123,11 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
     constant ("DeedTable", DeedTable);
     constant ("DeedTableColumns", DeedTableColumns);
 
+    value_object<std::pair<int, int>>("PairOfInt")
+        .field("first", &std::pair<int, int>::first)
+        .field("second", &std::pair<int, int>::second)
+        ;
+
     enum_<DeedField>("DeedField")
         .value("Price", DeedField::Price)
         .value("PricePerHouse", DeedField::PricePerHouse)
@@ -247,6 +252,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
     function("nearest_space", nearest_space);
 
     // Player.h
+    constant ("PlayerNone", Player::None);
     constant ("Player1", Player::p1);
     constant ("Player2", Player::p2);
     constant ("Player3", Player::p3);

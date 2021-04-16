@@ -128,12 +128,12 @@ int GameState::get_net_worth(int playerIndex) const {
     return netWorth;
 }
 
-std::optional<int> GameState::get_property_owner_index(Property property) const {
+int GameState::get_property_owner_index(Property property) const {
     for (auto p = 0; p < players.size(); ++p) {
         if (players[p].deeds.count(property))
             return p;
     }
-    return {};
+    return Player::None;
 }
 
 bool GameState::get_property_is_mortgaged(Property property) const {
@@ -141,14 +141,16 @@ bool GameState::get_property_is_mortgaged(Property property) const {
 }
 
 int GameState::get_properties_owned_in_group(Property property) const {
-    auto const ownerOpt = get_property_owner_index(property);
-    auto const ownedGroupCount = ownerOpt
-        ? get_properties_owned_in_group_by_player(*ownerOpt, property_group(property))
+    auto const owner = get_property_owner_index(property);
+    auto const ownedGroupCount = owner
+        ? get_properties_owned_in_group_by_player(owner, property_group(property))
         : 0;
     return ownedGroupCount;
 }
 
 int GameState::get_properties_owned_in_group_by_player(int playerIndex, PropertyGroup group) const {
+    if (playerIndex == Player::None)
+        return 0;
     auto const& deeds = players[playerIndex].deeds;
     return std::count_if(deeds.begin(), deeds.end(), [group](Property property) { return property_is_in_group(property, group); });
 }
@@ -190,11 +192,10 @@ Auction GameState::get_current_auction() const {
 }
 
 int GameState::calculate_rent(Property property) const {
-    auto const ownerOpt = get_property_owner_index(property);
-    if (!ownerOpt) {
+    auto const ownerIndex = get_property_owner_index(property);
+    if (ownerIndex == Player::None) {
         return 0;
     }
-    auto const ownerIndex = *ownerOpt;
     auto const group = property_group(property);
     auto const ownedDeedsInGroup = get_properties_owned_in_group_by_player(ownerIndex, group);
 
@@ -338,8 +339,9 @@ bool GameState::check_if_player_is_allowed_to_auction_property(int actorIndex) c
     if (landedOnProperty == Property::Invalid) {
         return false;
     }
-    assert(!get_property_owner_index(landedOnProperty).has_value());
-    if (get_property_owner_index(landedOnProperty).has_value()) {
+    auto ownerIndex = get_property_owner_index(landedOnProperty);
+    assert(ownerIndex == Player::None); // shouldn't be waiting for buy if play owned
+    if (ownerIndex != Player::None) {
         return false;
     }
     return true;
@@ -881,13 +883,13 @@ void GameState::force_land(int playerIndex, Space space) {
     if (space_is_property(space))
     {
         auto const property = space_to_property(space);
-        auto const ownerOpt = get_property_owner_index(property);
-        if (!ownerOpt) {
+        auto const ownerIndex = get_property_owner_index(property);
+        if (ownerIndex == Player::None) {
             force_property_offer(playerIndex, property);
         }
-        else if (ownerOpt != playerIndex) {
+        else if (ownerIndex != playerIndex) {
             auto const rent = calculate_rent(property);
-            force_transfer_funds(playerIndex, *ownerOpt, rent);
+            force_transfer_funds(playerIndex, ownerIndex, rent);
         }
     }
     else {
@@ -1006,11 +1008,11 @@ void GameState::force_sell_all_buildings(int playerIndex, PropertyGroup group) {
     auto const properties = properties_in_group(group);
     for (auto property : properties) {
         auto &buildingLevel = buildingLevels[property];
-        auto const ownerOpt = get_property_owner_index(property);
-        assert(ownerOpt);
-        if (!ownerOpt)
+        auto const ownerIndex = get_property_owner_index(property);
+        assert(ownerIndex != Player::None);
+        if (ownerIndex == Player::None)
             continue;
-        force_add_funds(*ownerOpt, buildingLevel * sell_price_per_house_on_property(property));
+        force_add_funds(ownerIndex, buildingLevel * sell_price_per_house_on_property(property));
         if (buildingLevel == HotelLevel) {
             bank.hotels += 1;
         }

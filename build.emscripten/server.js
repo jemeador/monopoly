@@ -17,6 +17,10 @@ http.createServer(function (request, response) {
         response.writeHeader(200, { 'Content-Type': 'text/html' });
         fs.readFile('index.html', fileHandler);
     }
+    if (request.url.endsWith ('.css')) {
+        response.writeHeader(200, { 'Content-Type': 'text/css' });
+        fs.readFile('.' + request.url, fileHandler);
+    }
     else if (request.url.endsWith ('.js')) {
         response.writeHeader(200, { 'Content-Type': 'text/script' });
         fs.readFile('.' + request.url, fileHandler);

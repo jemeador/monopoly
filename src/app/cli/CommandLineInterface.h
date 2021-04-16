@@ -261,8 +261,9 @@ namespace monopoly
                             std::cout << (houseIsBuilt ? "# " : "_ ");
                         }
                     }
-                    if (auto const ownerOpt = state.get_property_owner_index(property)) {
-                        std::cout << *ownerOpt + 1 << " ";
+                    auto const ownerIndex = state.get_property_owner_index(property);
+                    if (ownerIndex != Player::None) {
+                        std::cout << ownerIndex + 1 << " ";
                     }
                     else {
                         std::cout << "* ";

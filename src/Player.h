@@ -10,6 +10,7 @@ namespace monopoly
     class Player
     {
     public:
+        static int const None = -1;
         static int const p1 = 0;
         static int const p2 = 1;
         static int const p3 = 2;
