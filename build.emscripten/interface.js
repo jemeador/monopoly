@@ -10,7 +10,7 @@ var Module = {
             get_setup: function () {
                 return {
                     seed: "monopolyRandomSeed!",
-                    playerCount: 2,
+                    playerCount: 4,
                     startingFunds: 1500,
                 };
             },
@@ -21,6 +21,8 @@ var Module = {
             },
         });
 
+        var boardColor = '#CDE6D0';
+        var basicIconColor = '#726E6D';
         var rollButton = document.getElementById("rollButton");
         var buyPropertyButton = document.getElementById("buyPropertyButton");
         var auctionPropertyButton = document.getElementById("auctionPropertyButton");
@@ -30,19 +32,22 @@ var Module = {
         var declineBidButton = document.getElementById("declineBidButton");
         var endTurnButton = document.getElementById("endTurnButton");
         var resignButton = document.getElementById("resignButton");
+        var startManageButton = document.getElementById("startManageButton");
+        var finishManageButton = document.getElementById("finishManageButton");
         var nextBid = function (state_) {
             return state_.get_current_auction ().highestBid + 10;
         }
+        var getPlayerIndex = function (state_) {
+            return state_.get_controlling_player_index();
+        };
+        var manageModeOn = false;
+        var selectedProprety = Module.Property.Invalid;
 
         // Ensure font awesome is loaded before we draw icons
         setTimeout(start, 100) // Yucky, we should actually wait until font awesome is loaded
         function start() {
             var interface = new JavascriptInterface;
             var game = new Module.Game(interface);
-
-            var getPlayerIndex = function (state_) {
-                return state_.get_controlling_player_index();
-            };
 
             let dieIconName = (faceValue) => {
                 switch (faceValue) {
@@ -61,7 +66,12 @@ var Module = {
                 var diceValues = gameState.get_last_dice_roll();
 
                 let updateDieDisplay = (dieElement, value) => {
-                    dieElement.setAttribute("class", "dice fas fa-dice-" + dieIconName (value));
+                    if (Module.can) {
+                        dieElement.setAttribute("class", "dice fas fa-dice-d6");
+                    }
+                    else {
+                        dieElement.setAttribute("class", "dice fas fa-dice-" + dieIconName (value));
+                    }
                 }
                 updateDieDisplay(d1, diceValues.first);
                 updateDieDisplay(d2, diceValues.second);
@@ -104,9 +114,18 @@ var Module = {
                 interface.resign(getPlayerIndex (gameState));
                 game.process();
             };
+            startManageButton.onclick = function () {
+                manageModeOn = true;
+                updateInputButtons(gameState);
+                paintBoard(gameState);
+            };
+            finishManageButton.onclick = function () {
+                manageModeOn = false;
+                updateInputButtons(gameState);
+                paintBoard(gameState);
+            };
         }
         function updateInputButtons(interface) {
-            let controllingPlayerIndex = gameState.get_controlling_player_index();
 
             var setButtonVisibility = (button, visible) => {
                 if (visible) {
@@ -116,15 +135,18 @@ var Module = {
                     button.style.display = 'none';
                 }
             };
-            setButtonVisibility(rollButton, gameState.check_if_player_is_allowed_to_roll(controllingPlayerIndex));
-            setButtonVisibility(buyPropertyButton, gameState.check_if_player_is_allowed_to_buy_property(controllingPlayerIndex));
-            setButtonVisibility(auctionPropertyButton, gameState.check_if_player_is_allowed_to_auction_property(controllingPlayerIndex));
-            setButtonVisibility(useGetOutOfJailFreeCardButton, gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(controllingPlayerIndex));
-            setButtonVisibility(payBailButton, gameState.check_if_player_is_allowed_to_pay_bail(controllingPlayerIndex));
-            setButtonVisibility(bidButton, gameState.check_if_player_is_allowed_to_bid(controllingPlayerIndex, nextBid(gameState)));
-            setButtonVisibility(declineBidButton, gameState.check_if_player_is_allowed_to_decline_bid(controllingPlayerIndex));
-            setButtonVisibility(endTurnButton, gameState.check_if_player_is_allowed_to_end_turn(controllingPlayerIndex));
-            setButtonVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(controllingPlayerIndex));
+            const thisPlayerIndex = getPlayerIndex(gameState);
+            setButtonVisibility(rollButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_roll(thisPlayerIndex));
+            setButtonVisibility(buyPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_buy_property(thisPlayerIndex));
+            setButtonVisibility(auctionPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
+            setButtonVisibility(useGetOutOfJailFreeCardButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
+            setButtonVisibility(payBailButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
+            setButtonVisibility(bidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, nextBid(gameState)));
+            setButtonVisibility(declineBidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
+            setButtonVisibility(endTurnButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
+            setButtonVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
+            setButtonVisibility(startManageButton, ! manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
+            setButtonVisibility(finishManageButton, gameState.get_controlling_player_index() == thisPlayerIndex && manageModeOn);
         }
         function paintBoard(gameState) {
 
@@ -136,10 +158,10 @@ var Module = {
             ];
 
             const playerColors = [
-                '#2C3539', // Gunmetal
-                '#95B9C7', // Baby Blue
-                '#6F4E37', // Coffee
                 '#4863A0', // Steel Blue
+                '#4E8975', // Sea Green
+                '#6F4E37', // Coffee
+                '#E18B6B', // Caramel
             ];
 
             let translateToSpace = (ctx, space) => {
@@ -182,15 +204,28 @@ var Module = {
             };
 
             let drawPlayerFunds = (ctx, space) => {
+                let table = document.getElementById("playerTable");
+                table.innerHTML = "";
+                let playerTableData = [];
+                const controllingPlayerIndex = gameState.get_controlling_player_index();
+                
                 for (let p = 0; p < gameState.get_player_count(); ++p) {
-                    ctx.save();
-                    ctx.translate(boardWidth / 2, boardHeight / 2);
-                    ctx.font = 20 + "px Arial";
-                    ctx.fillStyle = "Black";
-                    ctx.textAlign = 'right';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(Module.player_name(p) + " " + playerIcons[p] + " $" + gameState.get_player_funds(p), 0, 25 * p);
-                    ctx.restore();
+                    if (gameState.get_player_eliminated(p))
+                        continue;
+                    let row = table.insertRow();
+                    let playerData = [Module.player_name(p), "$" + gameState.get_player_funds(p)];
+                    for (key in playerData) {
+                        let cell = row.insertCell();
+                        let text = document.createTextNode (playerData[key]);
+                        cell.appendChild(text);
+                        if (controllingPlayerIndex == p) {
+                            cell.style.backgroundColor = playerColors[p];
+                            cell.style.color = 'white';
+                        }
+                        else {
+                            cell.style.color = playerColors[p];
+                        }
+                    }
                 }
             }
 
@@ -237,7 +272,9 @@ var Module = {
                 drawPropertyPrice(ctx, property);
                 const playerIndex = gameState.get_property_owner_index(property);
                 if (playerIndex != -1) {
-                    drawPropertyOwnershipIndicator(ctx, playerIndex);
+                    if (!manageModeOn) {
+                        drawPropertyOwnershipIndicator(ctx, playerIndex);
+                    }
                 }
             }
 
@@ -254,7 +291,7 @@ var Module = {
                 ctx.fillStyle = "Black";
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.font = priceFontSize + "px Arial";
+                ctx.font = priceFontSize + "px Righteous";
                 ctx.fillText("$" + Module.price_of_property(property), spaceWidth / 2, spaceHeight - priceFontSize / 2);
             }
 
@@ -302,10 +339,29 @@ var Module = {
                 ctx.fillText(icon, 0, 0);
             }
 
+            let operateOnSpaces = (ctx, drawFunction) => {
+                for (let s = 0; s < sideCount; ++s) {
+                    ctx.translate(0, boardHeight - spaceHeight);
+                    for (var i = 0; i < spacesPerSide; ++i) {
+                        const spaceIndex = s * 10 + i;
+                        const isCornerSpace = spaceIndex % 10 == 0;
+                        const space = Module.index_to_space(spaceIndex);
+                        ctx.save();
+                        ctx.translate(boardWidth - (spaceHeight + spaceWidth * i), 0);
+                        drawFunction(ctx, space);
+                        ctx.restore();
+                    }
+                    ctx.translate(0, spaceHeight - boardHeight);
+                    ctx.translate(boardWidth / 2, boardHeight / 2);
+                    ctx.rotate(Math.PI / 2);
+                    ctx.translate(-boardWidth / 2, -boardHeight / 2);
+                }
+            }
+
             let drawNormalSpace = (ctx, space) => {
                 ctx.save();
                 ctx.translate(spaceWidth / 2, spaceHeight / 2);
-                drawIcon(ctx, '#D1D0CE', spaceIconSize, spaceToIcon(space)); // Gray Goose
+                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space)); // Smokey Gray
                 ctx.restore();
             }
 
@@ -313,22 +369,44 @@ var Module = {
                 ctx.save();
                 ctx.translate(spaceHeight / 2, spaceHeight / 2);
                 ctx.rotate(-Math.PI / 4);
-                drawIcon(ctx, '#D1D0CE', spaceIconSize, spaceToIcon(space)); // Gray Goose
+                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space)); // Gray Goose
                 ctx.restore();
             }
 
             let drawSpace = (ctx, space) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.fillStyle = boardColor;
+                if (isCornerSpace(space)) {
+                    ctx.rect(0, 0, spaceHeight, spaceHeight);
+                }
+                else {
+                    ctx.rect(0, 0, spaceWidth, spaceHeight);
+                }
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
                 if (isCornerSpace(space)) {
                     drawCornerSpace(ctx, space);
                 }
                 else {
-                    ctx.strokeRect(0, 0, spaceWidth, spaceHeight);
                     if (Module.space_is_property(space)) {
                         drawPropertySpace(ctx, space);
                     }
                     else {
                         drawNormalSpace(ctx, space);
                     }
+                }
+            }
+
+            let highlightOwnedSpace = (ctx, space) => {
+                if (! Module.space_is_property(space)) {
+                    return;
+                }
+                const property = Module.space_to_property(space);
+                const owner = gameState.get_property_owner_index(property);
+                if (owner == getPlayerIndex(gameState)) {
+                    ctx.rect(0,0, spaceWidth, spaceHeight);
                 }
             }
 
@@ -341,50 +419,45 @@ var Module = {
                 ctx.restore();
             }
 
-            var c = document.getElementById("boardCanvas");
-            var ctx = c.getContext("2d");
-            const boardWidth = c.width - 2;
+            var canvas = document.getElementById("boardCanvas");
+            var ctx = canvas.getContext("2d");
+            ctx.globalCompositeOperation = "source-over";
+
+            const boardWidth = canvas.width - 2;
             const boardHeight = boardWidth;
             ctx.save();
             ctx.clearRect(0, 0, boardWidth, boardHeight);
             const sideCount = 4;
             const spacesPerSide = 10;
-            const spaceToBoardRatio = 0.1365;
+            const spaceToBoardRatio = 0.125;
             const iconToSpaceRatio = 0.8;
-            const pieceToSpaceRatio = 0.3;
+            const pieceToSpaceRatio = 0.15;
             const priceToSpaceRatio = 0.2;
             const colorBannerToSpaceRatio = 0.2;
             const spaceHeight = spaceToBoardRatio * boardHeight;
             const spaceWidth = (boardWidth - (2 * spaceHeight)) / (spacesPerSide - 1);
             const spaceIconSize = iconToSpaceRatio * spaceWidth;
-            const pieceIconSize = pieceToSpaceRatio * spaceWidth;
+            const pieceIconSize = pieceToSpaceRatio * spaceHeight;
             const priceFontSize = priceToSpaceRatio * spaceWidth;
             const colorBannerHeight = colorBannerToSpaceRatio * spaceHeight;
 
             ctx.strokeRect(0, 0, boardWidth, boardHeight);
 
-            for (let s = 0; s < sideCount; ++s) {
-                ctx.translate(0, boardHeight - spaceHeight);
-                ctx.strokeRect(0, 0, boardWidth, spaceHeight);
-                for (var i = 0; i < spacesPerSide; ++i) {
-                    const spaceIndex = s * 10 + i;
-                    const isCornerSpace = spaceIndex % 10 == 0;
-                    const space = Module.index_to_space(spaceIndex);
-                    ctx.save();
-                    ctx.translate(boardWidth - (spaceHeight + spaceWidth * i), 0);
-                    drawSpace(ctx, space);
-                    ctx.restore();
-                }
-                ctx.translate(0, spaceHeight - boardHeight);
-                ctx.translate(boardWidth / 2, boardHeight / 2);
-                ctx.rotate(Math.PI / 2);
-                ctx.translate(-boardWidth / 2, -boardHeight / 2);
-            }
-
-            var playerNameLabel = document.getElementById("playerNameLabel");
-            playerNameLabel.innerHTML = Module.player_name(gameState.get_controlling_player_index ());
+            operateOnSpaces(ctx, drawSpace)
             drawPlayerPieces(ctx);
             drawPlayerFunds(ctx);
+            ctx.restore();
+
+            if (manageModeOn) {
+                ctx.save();
+                ctx.globalCompositeOperation = "saturation";
+                ctx.rect(0, 0, boardWidth, boardHeight);
+                operateOnSpaces(ctx, highlightOwnedSpace)
+                ctx.clip("evenodd");
+                ctx.fillStyle = 'Gray';
+                ctx.fillRect(0, 0, boardWidth, boardHeight);
+                ctx.restore();
+            }
         }
     }
 }
