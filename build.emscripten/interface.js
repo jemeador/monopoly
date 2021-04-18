@@ -1,3 +1,20 @@
+const boardWidth = 960;
+const boardHeight = boardWidth;
+const spaceToBoardRatio = 0.125;
+const sideCount = 4;
+const spacesPerSide = 10;
+const spaceHeight = spaceToBoardRatio * boardHeight;
+const spaceWidth = (boardWidth - (2 * spaceHeight)) / (spacesPerSide - 1);
+const pxPosOffset = spaceWidth - spaceHeight;
+const iconToSpaceRatio = 0.8;
+const pieceToSpaceRatio = 0.125;
+const priceToSpaceRatio = 0.2;
+const colorBannerToSpaceRatio = 0.2;
+const spaceIconSize = iconToSpaceRatio * spaceWidth;
+const pieceIconSize = pieceToSpaceRatio * spaceHeight;
+const priceFontSize = priceToSpaceRatio * spaceWidth;
+const colorBannerHeight = colorBannerToSpaceRatio * spaceHeight;
+
 var Module = {
     onRuntimeInitialized: function () {
         var gameState = new Module.GameState;
@@ -21,8 +38,8 @@ var Module = {
             },
         });
 
-        var boardColor = '#CDE6D0';
-        var basicIconColor = '#726E6D';
+        var boardColor = '#CDE6D0'; // Monopoly board teal
+        var basicIconColor = '#726E6D'; // Smokey Gray
         var rollButton = document.getElementById("rollButton");
         var buyPropertyButton = document.getElementById("buyPropertyButton");
         var auctionPropertyButton = document.getElementById("auctionPropertyButton");
@@ -34,6 +51,8 @@ var Module = {
         var resignButton = document.getElementById("resignButton");
         var startManageButton = document.getElementById("startManageButton");
         var finishManageButton = document.getElementById("finishManageButton");
+        var mortgageButton = document.getElementById("mortgageButton");
+        var unmortgageButton = document.getElementById("unmortgageButton");
         var nextBid = function (state_) {
             return state_.get_current_auction ().highestBid + 10;
         }
@@ -41,7 +60,7 @@ var Module = {
             return state_.get_controlling_player_index();
         };
         var manageModeOn = false;
-        var selectedProprety = Module.Property.Invalid;
+        var selectedProperty = -1;
 
         // Ensure font awesome is loaded before we draw icons
         setTimeout(start, 100) // Yucky, we should actually wait until font awesome is loaded
@@ -76,6 +95,68 @@ var Module = {
                 updateDieDisplay(d1, diceValues.first);
                 updateDieDisplay(d2, diceValues.second);
             }
+
+            let getSpaceClicked = (canvas, event) => {
+                const boundingRect = canvas.getBoundingClientRect();
+                const x = event.clientX - boundingRect.left;
+                const y = event.clientY - boundingRect.top;
+                const top = y <= spaceHeight;
+                const bot = y >= boardHeight - spaceHeight;
+                const left = x <= spaceHeight;
+                const right = x >= boardWidth - spaceHeight;
+
+                let side = 0;
+                let pxPos = 0;
+                if (bot && !left) {
+                    side = 0;
+                    pxPos = (boardWidth - x) + pxPosOffset;
+                }
+                if (left && !top) {
+                    side = 1;
+                    pxPos = (boardHeight - y) + pxPosOffset
+                }
+                else if (top && !right) {
+                    side = 2;
+                    pxPos = x + pxPosOffset;
+                }
+                else if (right && !bot) {
+                    side = 3;
+                    pxPos = y + pxPosOffset;
+                }
+
+                if (pxPos < 0) {
+                    pxPos = 0;
+                }
+                const indexAlongSide = Math.floor(pxPos / spaceWidth);
+                const spaceIndex = side * 10 + indexAlongSide;
+                const space = Module.index_to_space(spaceIndex);
+                return space;
+            }
+
+            let selectProperty = (property) => {
+                selectedProperty = property;
+                updateInputButtons();
+                paintBoard(gameState);
+            }
+
+            var canvas = document.getElementById("boardCanvas");
+
+            canvas.addEventListener("click", function (e) {
+                if (manageModeOn) {
+                    const space = getSpaceClicked(canvas, e);
+                    const property = Module.space_to_property(space);
+                    if (property != -1) {
+                        const ownerIndex = gameState.get_property_owner_index(property);
+                        if (ownerIndex == getPlayerIndex(gameState)) {
+                            if (selectedProperty != property) {
+                                selectProperty(property)
+                                return;
+                            }
+                        }
+                    }
+                }
+                selectProperty(-1);
+            }, false);
 
             rollButton.onclick = function () {
                 interface.roll_dice(getPlayerIndex (gameState));
@@ -121,8 +202,17 @@ var Module = {
             };
             finishManageButton.onclick = function () {
                 manageModeOn = false;
+                selectedProperty = -1;
                 updateInputButtons(gameState);
                 paintBoard(gameState);
+            };
+            mortgageButton.onclick = function () {
+                interface.mortgage_property(getPlayerIndex (gameState), selectedProperty);
+                game.process();
+            };
+            unmortgageButton.onclick = function () {
+                interface.unmortgage_property(getPlayerIndex (gameState), selectedProperty);
+                game.process();
             };
         }
         function updateInputButtons(interface) {
@@ -147,6 +237,8 @@ var Module = {
             setButtonVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
             setButtonVisibility(startManageButton, ! manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
             setButtonVisibility(finishManageButton, gameState.get_controlling_player_index() == thisPlayerIndex && manageModeOn);
+            setButtonVisibility(mortgageButton, gameState.check_if_player_is_allowed_to_mortgage(thisPlayerIndex, selectedProperty));
+            setButtonVisibility(unmortgageButton, gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
         }
         function paintBoard(gameState) {
 
@@ -191,7 +283,9 @@ var Module = {
                 ctx.beginPath();
                 ctx.arc(0, 0, pieceIconSize / 2 + spaceWidth/10, 0, 2 * Math.PI, false);
                 ctx.fillStyle = color;
+                ctx.strokeStyle = 'Black';
                 ctx.fill();
+                ctx.stroke();
                 drawIcon(ctx, 'White', pieceIconSize,  icon);
                 ctx.restore();
             }
@@ -275,16 +369,25 @@ var Module = {
                     if (!manageModeOn) {
                         drawPropertyOwnershipIndicator(ctx, playerIndex);
                     }
+                    else if (property == selectedProperty){
+                        drawSelectionIndicator(ctx);
+                    }
+                }
+                if (gameState.get_property_is_mortgaged(property)) {
+                    drawMortgagedIndicator(ctx);
                 }
             }
 
             let drawColorBar = (ctx, color) => {
+                ctx.save();
                 ctx.fillStyle = color;
+                ctx.strokeStyle = 'Black';
                 ctx.beginPath();
                 ctx.rect(0, 0, spaceWidth, colorBannerHeight);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
+                ctx.restore();
             }
 
             let drawPropertyPrice = (ctx, property) => {
@@ -361,7 +464,7 @@ var Module = {
             let drawNormalSpace = (ctx, space) => {
                 ctx.save();
                 ctx.translate(spaceWidth / 2, spaceHeight / 2);
-                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space)); // Smokey Gray
+                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space));
                 ctx.restore();
             }
 
@@ -369,7 +472,7 @@ var Module = {
                 ctx.save();
                 ctx.translate(spaceHeight / 2, spaceHeight / 2);
                 ctx.rotate(-Math.PI / 4);
-                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space)); // Gray Goose
+                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space));
                 ctx.restore();
             }
 
@@ -383,6 +486,8 @@ var Module = {
                 else {
                     ctx.rect(0, 0, spaceWidth, spaceHeight);
                 }
+
+                ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
@@ -399,7 +504,7 @@ var Module = {
                 }
             }
 
-            let highlightOwnedSpace = (ctx, space) => {
+            let buildPathWithOwnedSpaces = (ctx, space) => {
                 if (! Module.space_is_property(space)) {
                     return;
                 }
@@ -411,38 +516,55 @@ var Module = {
             }
 
             let drawPropertyOwnershipIndicator = (ctx, player) => {
-                const strokeWidth = spaceWidth / 15;
                 ctx.save();
-                ctx.strokeStyle = playerColors[player];
-                ctx.lineWidth = strokeWidth;
-                ctx.strokeRect(strokeWidth, strokeWidth, spaceWidth - 2 * strokeWidth, spaceHeight - 2 * strokeWidth);
+                ctx.beginPath();
+                ctx.fillStyle = playerColors[player];
+                ctx.strokeStyle = 'Black';
+                ctx.rect(0, spaceHeight - colorBannerHeight, spaceWidth, spaceHeight);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            let drawSelectionIndicator = (ctx) => {
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = '#4891ff';
+                ctx.fillRect(0, 0, spaceWidth, spaceHeight);
+                ctx.restore();
+            }
+
+            let drawMortgagedIndicator = (ctx) => {
+                const x = spaceWidth * 0.125;
+                const y = spaceHeight / 2;
+                const signWidth = spaceWidth * 0.75;
+                const signHeight = spaceWidth * 0.25;
+                ctx.save();
+                ctx.fillStyle = 'Red';
+                ctx.strokeStyle = 'Black';
+                ctx.beginPath();
+                ctx.rect(x, y, signWidth, signHeight);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'White';
+                ctx.translate(x - signWidth / 2, y - signHeight / 2);
+                ctx.font = signHeight * 0.6 + "px Righteous";
+                ctx.fillText("CLOSED", signWidth, signHeight);
                 ctx.restore();
             }
 
             var canvas = document.getElementById("boardCanvas");
+
             var ctx = canvas.getContext("2d");
             ctx.globalCompositeOperation = "source-over";
 
-            const boardWidth = canvas.width - 2;
-            const boardHeight = boardWidth;
             ctx.save();
             ctx.clearRect(0, 0, boardWidth, boardHeight);
-            const sideCount = 4;
-            const spacesPerSide = 10;
-            const spaceToBoardRatio = 0.125;
-            const iconToSpaceRatio = 0.8;
-            const pieceToSpaceRatio = 0.15;
-            const priceToSpaceRatio = 0.2;
-            const colorBannerToSpaceRatio = 0.2;
-            const spaceHeight = spaceToBoardRatio * boardHeight;
-            const spaceWidth = (boardWidth - (2 * spaceHeight)) / (spacesPerSide - 1);
-            const spaceIconSize = iconToSpaceRatio * spaceWidth;
-            const pieceIconSize = pieceToSpaceRatio * spaceHeight;
-            const priceFontSize = priceToSpaceRatio * spaceWidth;
-            const colorBannerHeight = colorBannerToSpaceRatio * spaceHeight;
-
             ctx.strokeRect(0, 0, boardWidth, boardHeight);
-
             operateOnSpaces(ctx, drawSpace)
             drawPlayerPieces(ctx);
             drawPlayerFunds(ctx);
@@ -451,10 +573,12 @@ var Module = {
             if (manageModeOn) {
                 ctx.save();
                 ctx.globalCompositeOperation = "saturation";
+                ctx.beginPath();
                 ctx.rect(0, 0, boardWidth, boardHeight);
-                operateOnSpaces(ctx, highlightOwnedSpace)
+                operateOnSpaces(ctx, buildPathWithOwnedSpaces)
+                ctx.closePath();
                 ctx.clip("evenodd");
-                ctx.fillStyle = 'Gray';
+                ctx.fillStyle = 'White';
                 ctx.fillRect(0, 0, boardWidth, boardHeight);
                 ctx.restore();
             }

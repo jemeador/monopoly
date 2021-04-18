@@ -9,6 +9,7 @@ using namespace emscripten;
 #include "IInterface.h"
 #include "Game.h"
 #include "Input.h"
+#include "DisplayStrings.h"
 using namespace monopoly;
 
 // Allow "subclassing" IInterface from Javascript
@@ -97,7 +98,12 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .field("effectText", &CardData::effectText)
         ;
 
-    function("to_string", select_overload<std::string(DeckType)>(&to_string));
+    function("deck_type_to_string", select_overload<std::string(DeckType)>(&to_string));
+    function("space_to_string", select_overload<std::string(Space)>(&to_string));
+    function("proprety_to_string", select_overload<std::string(Property)>(&to_string));
+    function("property_group_to_string", select_overload<std::string(PropertyGroup)>(&to_string));
+    function("card_to_string", select_overload<std::string(Card)>(&to_string));
+    function("to_string", select_overload<std::string(TurnPhase)>(&to_string));
     function("card_data", &card_data);
     function("apply_card_effect", &apply_card_effect);
     function("card_is_get_out_of_jail_free", &card_is_get_out_of_jail_free);

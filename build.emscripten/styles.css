@@ -7,8 +7,8 @@
     display: inline-block;
     font-size: 32px;
     cursor: pointer;
-    width: 25%;
-    height: 10%;
+    width: 40%;
+    height: 20%;
     z-index: 1;
     font-family: 'Righteous';
 }
@@ -20,29 +20,29 @@
 .topRight
 {
     position: absolute;
-    top: 15%;
-    right: 15%;
+    top: 2.5%;
+    right: 2.5%;
 }
 
 .topLeft
 {
     position: absolute;
-    top: 15%;
-    left: 15%;
+    top: 2.5%;
+    left: 2.5%;
 }
 
 .bottomRight
 {
     position: absolute;
-    bottom: 15%;
-    right: 15%;
+    bottom: 2.5%;
+    right: 2.5%;
 }
 
 .bottomLeft
 {
     position: absolute;
-    bottom: 15%;
-    left: 15%;
+    bottom: 2.5%;
+    left: 2.5%;
 }
 
 table {
@@ -85,17 +85,15 @@ th, td {
     grid-row: 1;
 }
 
-.backgroundLayer {
-    z-index: -1;
-}
-
 .foregroundLayer {
     z-index: 1;
+    left: 120px;
+    top: 120px;
+    max-width: 720px;
+    max-height: 720px;
 }
 
 #overlay {
-    width: 960px;
-    height: 960px;
     display: flex;
     align-items: center;
     justify-content: center;
