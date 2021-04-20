@@ -293,6 +293,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .field("biddingOrder", &Auction::biddingOrder)
     ;
     register_vector<int>("vector<int>");
+    register_vector<Property>("set<Property>");
     value_object<Debt>("Debt")
         .field("debtor", &Debt::debtor)
         .field("creditor", &Debt::creditor)

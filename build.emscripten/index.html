@@ -23,11 +23,13 @@
                 <table id="playerTable">
                 </table>
             </div>
-            <div id="diceLabel" class="center">
+            <div id="diceLabel" class="middleRight">
                 <i id="die1" class="dice fas fa-dice-d6"></i>
                 <i id="die2" class="dice fas fa-dice-d6"></i>
             </div>
-            <div id="gameOverLabel" class="center">
+            <div id="gameOverLabel" class="big-text center">
+            </div>
+            <div id="auctionAmountLabel" class="big-text center">
             </div>
             <button id="startManageButton"
                     class="button topRight"
@@ -42,7 +44,8 @@
             <button id="rollButton"
                     class="button center"
                     type="button">
-                <i class="dice fas fa-dice"></i>
+                <i class="icon fas fa-dice"></i><br />
+                Roll
             </button>
             <button id="endTurnButton"
                     class="button center"
@@ -52,18 +55,37 @@
             <button id="buyPropertyButton"
                     class="button bottomLeft"
                     type="button">
+                <i class="icon fas fa-money-check-alt"></i><br />
                 Buy Property
             </button>
             <button id="auctionPropertyButton"
                     class="button bottomRight"
                     type="button">
+                <i class="icon fas fa-gavel"></i><br />
                 Auction Property
             </button>
-            <button id="bidButton"
-                    class="button bottomLeft"
-                    type="button">
-                Bid
-            </button>
+            <div id="bidContainer" class="bottomLeft ">
+                <button id="bidButton_5"
+                        class="bid button"
+                        type="button">
+                    +$5
+                </button>
+                <button id="bidButton_10"
+                        class="bid button"
+                        type="button">
+                    +$10
+                </button>
+                <button id="bidButton_25"
+                        class="bid button"
+                        type="button">
+                    +$25
+                </button>
+                <button id="bidButton_50"
+                        class="bid button"
+                        type="button">
+                    +$50
+                </button>
+            </div>
             <button id="declineBidButton"
                     class="button bottomRight"
                     type="button">

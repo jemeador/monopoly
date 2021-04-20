@@ -14,7 +14,56 @@ const spaceIconSize = iconToSpaceRatio * spaceWidth;
 const pieceIconSize = pieceToSpaceRatio * spaceHeight;
 const priceFontSize = priceToSpaceRatio * spaceWidth;
 const colorBannerHeight = colorBannerToSpaceRatio * spaceHeight;
+const highlightColor = '#4891ff';
+const borderColor = 'Black';
+const boardColor = '#CDE6D0'; // Monopoly board teal
+const basicIconColor = '#726E6D'; // Smokey Gray
+const bidIncrements = [
+    5,
+    10,
+    25,
+    50,
+];
 
+const playerIcons = [
+    "\uf21a", // fa-ship
+    "\uf544", // fa-robot
+    "\uf0f4", // fa-coffee
+    "\uf5fc", // fa-laptop-code
+];
+
+const playerColors = [
+    '#4863A0', // Steel Blue
+    '#4E8975', // Sea Green
+    '#6F4E37', // Coffee
+    '#E18B6B', // Caramel
+];
+
+var bidButton = (bidIncrement) => {
+    return document.getElementById("bidButton_" + bidIncrement);
+}
+
+var dieIconName = (faceValue) => {
+    switch (faceValue) {
+        case 1: return "one";
+        case 2: return "two";
+        case 3: return "three";
+        case 4: return "four";
+        case 5: return "five";
+        case 6: return "six";
+    }
+    return "d6";
+}
+
+var gameFont = (pixelSize) => {
+    return makeFont(pixelSize, "Righteous");
+};
+var iconFont = (pixelSize) => {
+    return makeFont(pixelSize, "FontAwesome");
+};
+var makeFont = (pixelSize, fontFamily) => {
+    return pixelSize + "px " + fontFamily;
+};
 
 var setElementVisibility = (element, visible) => {
     if (visible) {
@@ -48,14 +97,11 @@ var Module = {
             },
         });
 
-        var boardColor = '#CDE6D0'; // Monopoly board teal
-        var basicIconColor = '#726E6D'; // Smokey Gray
         var rollButton = document.getElementById("rollButton");
         var buyPropertyButton = document.getElementById("buyPropertyButton");
         var auctionPropertyButton = document.getElementById("auctionPropertyButton");
         var useGetOutOfJailFreeCardButton = document.getElementById("useGetOutOfJailFreeCardButton");
         var payBailButton = document.getElementById("payBailButton");
-        var bidButton = document.getElementById("bidButton");
         var declineBidButton = document.getElementById("declineBidButton");
         var endTurnButton = document.getElementById("endTurnButton");
         var resignButton = document.getElementById("resignButton");
@@ -65,8 +111,8 @@ var Module = {
         var unmortgageButton = document.getElementById("unmortgageButton");
         var sellBuildingButton = document.getElementById("sellBuildingButton");
         var buyBuildingButton = document.getElementById("buyBuildingButton");
-        var nextBid = function (state_) {
-            return state_.get_current_auction ().highestBid + 10;
+        var addToBid = function (state, increment) {
+            return state.get_current_auction ().highestBid + increment;
         }
         var getPlayerIndex = function (state_) {
             return state_.get_controlling_player_index();
@@ -80,34 +126,6 @@ var Module = {
             var interface = new JavascriptInterface;
             var game = new Module.Game(interface);
             game.set_state(gameState);
-
-            let dieIconName = (faceValue) => {
-                switch (faceValue) {
-                    case 1: return "one";
-                    case 2: return "two";
-                    case 3: return "three";
-                    case 4: return "four";
-                    case 5: return "five";
-                    case 6: return "six";
-                }
-                return "d6";
-            }
-            let updateDiceDisplay = () => {
-                var d1 = document.getElementById("die1");
-                var d2 = document.getElementById("die2");
-                var diceValues = gameState.get_last_dice_roll();
-
-                let updateDieDisplay = (dieElement, value) => {
-                    if (Module.can) {
-                        dieElement.setAttribute("class", "dice fas fa-dice-d6");
-                    }
-                    else {
-                        dieElement.setAttribute("class", "dice fas fa-dice-" + dieIconName (value));
-                    }
-                }
-                updateDieDisplay(d1, diceValues.first);
-                updateDieDisplay(d2, diceValues.second);
-            }
 
             let getSpaceClicked = (canvas, event) => {
                 const boundingRect = canvas.getBoundingClientRect();
@@ -174,7 +192,6 @@ var Module = {
             rollButton.onclick = function () {
                 interface.roll_dice(getPlayerIndex (gameState));
                 game.process();
-                updateDiceDisplay();
             };
             buyPropertyButton.onclick = function () {
                 interface.buy_property(getPlayerIndex (gameState));
@@ -192,10 +209,13 @@ var Module = {
                 interface.pay_bail(getPlayerIndex (gameState));
                 game.process();
             };
-            bidButton.onclick = function () {
-                interface.bid(getPlayerIndex (gameState), nextBid(gameState));
-                game.process();
-            };
+            for (i = 0; i < bidIncrements.length; ++i) {
+                const increment = bidIncrements[i];
+                bidButton(increment).onclick = function () {
+                    interface.bid(getPlayerIndex (gameState), addToBid(gameState, increment));
+                    game.process();
+                };
+            }
             declineBidButton.onclick = function () {
                 interface.decline_bid(getPlayerIndex (gameState));
                 game.process();
@@ -243,7 +263,11 @@ var Module = {
             setElementVisibility(auctionPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
             setElementVisibility(useGetOutOfJailFreeCardButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
             setElementVisibility(payBailButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
-            setElementVisibility(bidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, nextBid(gameState)));
+            for (i = 0; i < bidIncrements.length; ++i) {
+                const increment = bidIncrements[i];
+                setElementVisibility(bidButton(increment), ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, addToBid (gameState, increment)));
+            }
+            setElementVisibility(auctionAmountLabel, !manageModeOn && gameState.get_turn_phase() == Module.TurnPhase.WaitingForBids);
             setElementVisibility(declineBidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
             setElementVisibility(endTurnButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
             setElementVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
@@ -255,20 +279,6 @@ var Module = {
             setElementVisibility(buyBuildingButton, gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
         }
         function paintBoard(gameState) {
-
-            const playerIcons = [
-                "\uf21a", // fa-ship
-                "\uf544", // fa-robot
-                "\uf0f4", // fa-coffee
-                "\uf5fc", // fa-laptop-code
-            ];
-
-            const playerColors = [
-                '#4863A0', // Steel Blue
-                '#4E8975', // Sea Green
-                '#6F4E37', // Coffee
-                '#E18B6B', // Caramel
-            ];
 
             let translateToSpace = (ctx, space) => {
                 const index = Module.space_to_index(space);
@@ -297,7 +307,7 @@ var Module = {
                 ctx.beginPath();
                 ctx.arc(0, 0, pieceIconSize / 2 + spaceWidth/10, 0, 2 * Math.PI, false);
                 ctx.fillStyle = color;
-                ctx.strokeStyle = 'Black';
+                ctx.strokeStyle = borderColor;
                 ctx.fill();
                 ctx.stroke();
                 drawIcon(ctx, 'White', pieceIconSize,  icon);
@@ -334,6 +344,48 @@ var Module = {
                             cell.style.color = playerColors[p];
                         }
                     }
+                }
+            }
+
+            let updateDiceDisplay = () => {
+                var d1 = document.getElementById("die1");
+                var d2 = document.getElementById("die2");
+                var diceValues = gameState.get_last_dice_roll();
+                const controllingPlayerIndex = gameState.get_controlling_player_index();
+                const dieColor = playerColors[controllingPlayerIndex];
+
+                let updateDieDisplay = (dieElement, value) => {
+                    if (Module.can) {
+                        dieElement.setAttribute("class", "dice fas fa-dice-d6");
+                    }
+                    else {
+                        dieElement.setAttribute("class", "dice fas fa-dice-" + dieIconName (value));
+                    }
+                    dieElement.style.color = dieColor;
+                }
+                updateDieDisplay(d1, diceValues.first);
+                updateDieDisplay(d2, diceValues.second);
+            }
+
+            let updateButtonColors = () => {
+                const controllingPlayerIndex = gameState.get_controlling_player_index();
+                const buttonColor = playerColors[controllingPlayerIndex];
+                var buttons = document.getElementsByClassName("button");
+                for (i = 0; i < buttons.length; ++i) { 
+                    buttons[i].style.backgroundColor = buttonColor;
+                }
+            }
+
+            let updateAuctionLabels = () => {
+                var amountLabel = document.getElementById("auctionAmountLabel");
+                const auction = gameState.get_current_auction();
+                const auctionIsActive = auction.biddingOrder.size() > 0;
+                setElementVisibility(amountLabel, auctionIsActive);
+                if (auctionIsActive) {
+                    const winningPlayerIndex = auction.biddingOrder.get(auction.biddingOrder.size () - 1);
+                    const labelColor = playerColors[winningPlayerIndex];
+                    amountLabel.innerHTML = "$" + auction.highestBid;
+                    amountLabel.style.color = labelColor;
                 }
             }
 
@@ -396,7 +448,7 @@ var Module = {
             let drawColorBar = (ctx, color) => {
                 ctx.save();
                 ctx.fillStyle = color;
-                ctx.strokeStyle = 'Black';
+                ctx.strokeStyle = borderColor;
                 ctx.beginPath();
                 ctx.rect(0, 0, spaceWidth, colorBannerHeight);
                 ctx.closePath();
@@ -433,7 +485,7 @@ var Module = {
                         ctx.save();
                         ctx.translate(spaceWidth * 0.025 + i * spaceWidth * 0.25, colorBannerHeight * 0.1);
                         ctx.fillStyle = 'Green';
-                        ctx.strokeStyle = 'Black';
+                        ctx.strokeStyle = borderColor;
                         drawBuilding(ctx);
                         ctx.restore();
                     }
@@ -441,17 +493,17 @@ var Module = {
                 if (buildingLevel == 5) {
                     ctx.translate(spaceWidth * 0.5 - houseWidth * 0.5, colorBannerHeight * 0.1);
                     ctx.fillStyle = 'Red';
-                    ctx.strokeStyle = 'Black';
+                    ctx.strokeStyle = borderColor;
                     drawBuilding(ctx);
                 }
                 ctx.restore();
             }
 
             let drawPropertyPrice = (ctx, property) => {
-                ctx.fillStyle = 'Black';
+                ctx.fillStyle = borderColor;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.font = priceFontSize + "px Righteous";
+                ctx.font = gameFont(priceFontSize);
                 ctx.fillText("$" + Module.price_of_property(property), spaceWidth / 2, spaceHeight - priceFontSize / 2);
             }
 
@@ -495,7 +547,8 @@ var Module = {
                 ctx.fillStyle = color;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.font = pixelSize + "px FontAwesome";
+                var font = iconFont(pixelSize);
+                ctx.font = font;
                 ctx.fillText(icon, 0, 0);
             }
 
@@ -535,8 +588,14 @@ var Module = {
 
             let drawSpace = (ctx, space) => {
                 ctx.save();
+                if (space == gameState.get_player_position(gameState.get_controlling_player_index()) &&
+                    ! manageModeOn) {
+                    ctx.fillStyle = highlightColor;
+                }
+                else {
+                    ctx.fillStyle = boardColor;
+                }
                 ctx.beginPath();
-                ctx.fillStyle = boardColor;
                 if (isCornerSpace(space)) {
                     ctx.rect(0, 0, spaceHeight, spaceHeight);
                 }
@@ -576,7 +635,7 @@ var Module = {
                 ctx.save();
                 ctx.beginPath();
                 ctx.fillStyle = playerColors[player];
-                ctx.strokeStyle = 'Black';
+                ctx.strokeStyle = borderColor;
                 ctx.rect(0, spaceHeight - colorBannerHeight, spaceWidth, spaceHeight);
                 ctx.closePath();
                 ctx.fill();
@@ -587,7 +646,7 @@ var Module = {
             let drawSelectionIndicator = (ctx) => {
                 ctx.save();
                 ctx.globalAlpha = 0.5;
-                ctx.fillStyle = '#4891ff';
+                ctx.fillStyle = highlightColor;
                 ctx.fillRect(0, 0, spaceWidth, spaceHeight);
                 ctx.restore();
             }
@@ -599,7 +658,7 @@ var Module = {
                 const signHeight = spaceWidth * 0.25;
                 ctx.save();
                 ctx.fillStyle = 'Red';
-                ctx.strokeStyle = 'Black';
+                ctx.strokeStyle = borderColor;
                 ctx.beginPath();
                 ctx.rect(x, y, signWidth, signHeight);
                 ctx.closePath();
@@ -609,7 +668,7 @@ var Module = {
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = 'White';
                 ctx.translate(x - signWidth / 2, y - signHeight / 2);
-                ctx.font = signHeight * 0.6 + "px Righteous";
+                ctx.font = gameFont(signHeight * 0.6);
                 ctx.fillText("CLOSED", signWidth, signHeight);
                 ctx.restore();
             }
@@ -625,6 +684,9 @@ var Module = {
             operateOnSpaces(ctx, drawSpace)
             drawPlayerPieces(ctx);
             drawPlayerFunds(ctx);
+            updateDiceDisplay();
+            updateButtonColors();
+            updateAuctionLabels();
             ctx.restore();
 
             if (gameState.is_game_over()) {
