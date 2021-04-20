@@ -474,6 +474,7 @@ var Module = {
                 }
                 ctx.closePath();
                 ctx.fill();
+                ctx.stroke();
                 ctx.restore();
             }
 
