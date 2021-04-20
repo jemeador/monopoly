@@ -540,6 +540,18 @@ SCENARIO("Players may buy/sell buildings (evenly) on real estate properties if t
             }
         }
     }
+
+    GIVEN("Player 1 has nothing") {
+        test.set_player_funds(Player::p1, startingFunds);
+
+        WHEN("player 1 tries to buy a house on an invalid property") {
+            test.buy_building(Property::Invalid);
+
+            THEN("nothing happens") {
+                test.require_funds(Player::p1, startingFunds);
+            }
+        }
+    }
 }
 
 SCENARIO("Players cannot build if there aren't enough buildings in the bank to place the new buildings", "[property, building]") {

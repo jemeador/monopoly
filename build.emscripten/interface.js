@@ -15,6 +15,16 @@ const pieceIconSize = pieceToSpaceRatio * spaceHeight;
 const priceFontSize = priceToSpaceRatio * spaceWidth;
 const colorBannerHeight = colorBannerToSpaceRatio * spaceHeight;
 
+
+var setElementVisibility = (element, visible) => {
+    if (visible) {
+        element.style.display = 'block';
+    }
+    else {
+        element.style.display = 'none';
+    }
+};
+
 var Module = {
     onRuntimeInitialized: function () {
         var gameState = new Module.GameState;
@@ -53,6 +63,8 @@ var Module = {
         var finishManageButton = document.getElementById("finishManageButton");
         var mortgageButton = document.getElementById("mortgageButton");
         var unmortgageButton = document.getElementById("unmortgageButton");
+        var sellBuildingButton = document.getElementById("sellBuildingButton");
+        var buyBuildingButton = document.getElementById("buyBuildingButton");
         var nextBid = function (state_) {
             return state_.get_current_auction ().highestBid + 10;
         }
@@ -60,13 +72,14 @@ var Module = {
             return state_.get_controlling_player_index();
         };
         var manageModeOn = false;
-        var selectedProperty = -1;
+        var selectedProperty = Module.Property.Invalid;
 
         // Ensure font awesome is loaded before we draw icons
         setTimeout(start, 100) // Yucky, we should actually wait until font awesome is loaded
         function start() {
             var interface = new JavascriptInterface;
             var game = new Module.Game(interface);
+            game.set_state(gameState);
 
             let dieIconName = (faceValue) => {
                 switch (faceValue) {
@@ -145,7 +158,7 @@ var Module = {
                 if (manageModeOn) {
                     const space = getSpaceClicked(canvas, e);
                     const property = Module.space_to_property(space);
-                    if (property != -1) {
+                    if (property != Module.Property.Invalid) {
                         const ownerIndex = gameState.get_property_owner_index(property);
                         if (ownerIndex == getPlayerIndex(gameState)) {
                             if (selectedProperty != property) {
@@ -155,7 +168,7 @@ var Module = {
                         }
                     }
                 }
-                selectProperty(-1);
+                selectProperty(Module.Property.Invalid);
             }, false);
 
             rollButton.onclick = function () {
@@ -202,7 +215,7 @@ var Module = {
             };
             finishManageButton.onclick = function () {
                 manageModeOn = false;
-                selectedProperty = -1;
+                selectedProperty = Module.Property.Invalid;
                 updateInputButtons(gameState);
                 paintBoard(gameState);
             };
@@ -214,31 +227,32 @@ var Module = {
                 interface.unmortgage_property(getPlayerIndex (gameState), selectedProperty);
                 game.process();
             };
+            sellBuildingButton.onclick = function () {
+                interface.sell_building(getPlayerIndex (gameState), selectedProperty);
+                game.process();
+            };
+            buyBuildingButton.onclick = function () {
+                interface.buy_building(getPlayerIndex (gameState), selectedProperty);
+                game.process();
+            };
         }
         function updateInputButtons(interface) {
-
-            var setButtonVisibility = (button, visible) => {
-                if (visible) {
-                    button.style.display = 'block';
-                }
-                else {
-                    button.style.display = 'none';
-                }
-            };
             const thisPlayerIndex = getPlayerIndex(gameState);
-            setButtonVisibility(rollButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_roll(thisPlayerIndex));
-            setButtonVisibility(buyPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_buy_property(thisPlayerIndex));
-            setButtonVisibility(auctionPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
-            setButtonVisibility(useGetOutOfJailFreeCardButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
-            setButtonVisibility(payBailButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
-            setButtonVisibility(bidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, nextBid(gameState)));
-            setButtonVisibility(declineBidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
-            setButtonVisibility(endTurnButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
-            setButtonVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
-            setButtonVisibility(startManageButton, ! manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
-            setButtonVisibility(finishManageButton, gameState.get_controlling_player_index() == thisPlayerIndex && manageModeOn);
-            setButtonVisibility(mortgageButton, gameState.check_if_player_is_allowed_to_mortgage(thisPlayerIndex, selectedProperty));
-            setButtonVisibility(unmortgageButton, gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
+            setElementVisibility(rollButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_roll(thisPlayerIndex));
+            setElementVisibility(buyPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_buy_property(thisPlayerIndex));
+            setElementVisibility(auctionPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
+            setElementVisibility(useGetOutOfJailFreeCardButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
+            setElementVisibility(payBailButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
+            setElementVisibility(bidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, nextBid(gameState)));
+            setElementVisibility(declineBidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
+            setElementVisibility(endTurnButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
+            setElementVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
+            setElementVisibility(startManageButton, ! manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
+            setElementVisibility(finishManageButton, gameState.get_controlling_player_index() == thisPlayerIndex && manageModeOn);
+            setElementVisibility(mortgageButton, gameState.check_if_player_is_allowed_to_mortgage(thisPlayerIndex, selectedProperty));
+            setElementVisibility(unmortgageButton, gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
+            setElementVisibility(sellBuildingButton, gameState.check_if_player_is_allowed_to_sell_building(thisPlayerIndex, selectedProperty));
+            setElementVisibility(buyBuildingButton, gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
         }
         function paintBoard(gameState) {
 
@@ -359,6 +373,7 @@ var Module = {
                 const color = groupToColor(group);
                 if (color) {
                     drawColorBar(ctx, color);
+                    drawBuildings(ctx, gameState.get_building_level(property));
                 }
                 else {
                     drawNormalSpace(ctx, space);
@@ -390,8 +405,50 @@ var Module = {
                 ctx.restore();
             }
 
+            let drawBuilding = (ctx) => {
+                const houseWidth = spaceWidth * 0.2; 
+                const houseHeight = colorBannerHeight * 0.8;
+                const housePoly = [
+                    0, houseHeight * 0.25,
+                    houseWidth * 0.5, 0,
+                    houseWidth, houseHeight * 0.25,
+                    houseWidth, houseHeight,
+                    0, houseHeight];
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(housePoly[0], housePoly[1]);
+                for (let i = 2; i < housePoly.length - 1; i += 2) {
+                    ctx.lineTo(housePoly[i], housePoly[i + 1]);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            let drawBuildings = (ctx, buildingLevel) => {
+                const houseWidth = spaceWidth * 0.2; 
+                ctx.save();
+                if (buildingLevel <= 4) {
+                    for (let i = 0; i < buildingLevel; ++i) {
+                        ctx.save();
+                        ctx.translate(spaceWidth * 0.025 + i * spaceWidth * 0.25, colorBannerHeight * 0.1);
+                        ctx.fillStyle = 'Green';
+                        ctx.strokeStyle = 'Black';
+                        drawBuilding(ctx);
+                        ctx.restore();
+                    }
+                }
+                if (buildingLevel == 5) {
+                    ctx.translate(spaceWidth * 0.5 - houseWidth * 0.5, colorBannerHeight * 0.1);
+                    ctx.fillStyle = 'Red';
+                    ctx.strokeStyle = 'Black';
+                    drawBuilding(ctx);
+                }
+                ctx.restore();
+            }
+
             let drawPropertyPrice = (ctx, property) => {
-                ctx.fillStyle = "Black";
+                ctx.fillStyle = 'Black';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
                 ctx.font = priceFontSize + "px Righteous";
@@ -445,7 +502,7 @@ var Module = {
             let operateOnSpaces = (ctx, drawFunction) => {
                 for (let s = 0; s < sideCount; ++s) {
                     ctx.translate(0, boardHeight - spaceHeight);
-                    for (var i = 0; i < spacesPerSide; ++i) {
+                    for (let i = 0; i < spacesPerSide; ++i) {
                         const spaceIndex = s * 10 + i;
                         const isCornerSpace = spaceIndex % 10 == 0;
                         const space = Module.index_to_space(spaceIndex);
@@ -570,7 +627,23 @@ var Module = {
             drawPlayerFunds(ctx);
             ctx.restore();
 
-            if (manageModeOn) {
+            if (gameState.is_game_over()) {
+                var buttons = document.getElementsByClassName("button");
+                var diceLabel = document.getElementById("diceLabel");
+                var gameOverLabel = document.getElementById("gameOverLabel");
+                for (i = 0; i < buttons.length; ++i) { 
+                    setElementVisibility(buttons[i], false);
+                }
+                setElementVisibility(diceLabel, false);
+                setElementVisibility(gameOverLabel, true);
+                if (gameState.get_player_eliminated(getPlayerIndex(gameState))) {
+                    gameOverLabel.innerHTML = "You lose!";
+                }
+                else {
+                    gameOverLabel.innerHTML = "You win!";
+                }
+            }
+            else if (manageModeOn) {
                 ctx.save();
                 ctx.globalCompositeOperation = "saturation";
                 ctx.beginPath();

@@ -47,8 +47,9 @@ namespace monopoly
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 2
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 3
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 4
-            150,    0,    0,    0,    0,    0,    0,    0,  75, // Utility 1
-            150,    0,    0,    0,    0,    0,    0,    0,  75, // Utility 2
+            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 1
+            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 2
+            0,      0,    0,    0,    0,    0,    0,    0,  0,   // Invalid
     };
 
     enum class DeedField : int {
@@ -68,6 +69,7 @@ namespace monopoly
         Blue,
         Utility,
         Railroad,
+        Invalid = -1,
     };
 
     enum class Property
@@ -144,7 +146,7 @@ namespace monopoly
         case Property::Railroad_4:
             return PropertyGroup::Railroad;
         case Property::Invalid:
-            break;
+            return PropertyGroup::Invalid;
         }
         assert(false); // unreachable
         return PropertyGroup::Railroad;
@@ -341,6 +343,8 @@ namespace monopoly
         Blue_1,
         LuxuryTax,
         Blue_2,
+
+        Invalid = -1,
     };
 
     inline Property space_to_property(Space s) {

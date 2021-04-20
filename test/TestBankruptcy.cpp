@@ -70,3 +70,18 @@ SCENARIO("When a player can't afford to pay a debt, they must acquire funds or b
 		}
     }
 }
+
+SCENARIO("When a player resigns the game should continue if there are 2 or more players remaining", "[resignation]") {
+    Test test;
+    GIVEN("Player 1 has landed on Boardwalk") {
+        test.land_on_space(Player::p1, Space::Blue_2);
+
+        WHEN("player 1 resigns") {
+            test.resign(Player::p1);
+
+            THEN("the property goes to auction") {
+                test.require_phase(TurnPhase::WaitingForBids);
+            }
+        }
+    }
+}

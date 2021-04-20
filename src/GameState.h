@@ -21,6 +21,7 @@ namespace monopoly
         WaitingForBuyPropertyInput,
         WaitingForRoll,
         WaitingForTurnEnd,
+        GameOver,
     };
 
     struct GameSetup
@@ -199,8 +200,6 @@ namespace monopoly
         int calculate_liquid_value_of_deeds(std::set<Property> deeds) const;
         int calculate_liquid_value_of_buildings(std::set<Property> deeds) const;
         int calculate_liquid_value_of_promise(Promise promise) const;
-
-        bool waiting_on_player_actions() const;
 
         std::pair<int, int> random_dice_roll();
         std::pair<int, int> get_last_dice_roll() const;

@@ -156,6 +156,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .value("Blue", PropertyGroup::Blue)
         .value("Utility", PropertyGroup::Utility)
         .value("Railroad", PropertyGroup::Railroad)
+        .value("Invalid", PropertyGroup::Invalid)
         ;
     enum_<Property>("Property")
         .value("Brown_1", Property::Brown_1)
@@ -186,7 +187,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .value("Railroad_2", Property::Railroad_2)
         .value("Railroad_3", Property::Railroad_3)
         .value("Railroad_4", Property::Railroad_4)
-        .value("Invalid ", Property::Invalid)
+        .value("Invalid", Property::Invalid)
         ;
     enum_<Space>("Space")
         .value("Go", Space::Go)
@@ -229,6 +230,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .value("Blue_1", Space::Blue_1)
         .value("LuxuryTax", Space::LuxuryTax)
         .value("Blue_2", Space::Blue_2)
+        .value("Invalid", Space::Invalid)
         ;
 
     function("price_of_property", &price_of_property);
@@ -346,7 +348,6 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .function("calculate_liquid_value_of_deeds", &GameState::calculate_liquid_value_of_deeds)
         .function("calculate_liquid_value_of_buildings", &GameState::calculate_liquid_value_of_buildings)
         .function("calculate_liquid_value_of_promise", &GameState::calculate_liquid_value_of_promise)
-        .function("waiting_on_player_actions", &GameState::waiting_on_player_actions)
         .function("random_dice_roll", &GameState::random_dice_roll)
         .function("get_last_dice_roll", &GameState::get_last_dice_roll)
         .function("check_if_player_is_allowed_to_roll", &GameState::check_if_player_is_allowed_to_roll)

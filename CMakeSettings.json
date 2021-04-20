@@ -36,6 +36,7 @@
       "environments": [ {"VERBOSE": "1"} ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-j 4",
       "cmakeToolchain": "E:\\Code\\emsdk\\upstream\\emscripten\\cmake\\Modules\\Platform\\Emscripten.cmake",
     }
   ]

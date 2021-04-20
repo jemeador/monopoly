@@ -31,7 +31,7 @@ GameState::GameState(GameSetup setup)
 }
 
 bool GameState::is_game_over() const {
-    return get_players_remaining_count() < 2;
+    return phase == TurnPhase::GameOver;
 }
 int GameState::get_turn() const {
     return turn;
@@ -97,6 +97,8 @@ int GameState::get_controlling_player_index() const {
             return activePlayerIndex;
         case TurnPhase::WaitingForTurnEnd:
             return activePlayerIndex;
+        case TurnPhase::GameOver:
+            return activePlayerIndex;
     }
     return activePlayerIndex;
 }
@@ -129,6 +131,9 @@ int GameState::get_net_worth(int playerIndex) const {
 }
 
 int GameState::get_property_owner_index(Property property) const {
+    if (property == Property::Invalid) {
+        return -1;
+    }
     for (auto p = 0; p < players.size(); ++p) {
         if (players[p].deeds.count(property))
             return p;
@@ -251,14 +256,6 @@ int GameState::calculate_liquid_value_of_promise(Promise promise) const {
     return promise.cash + calculate_liquid_value_of_deeds(promise.deeds);
 }
 
-bool GameState::waiting_on_player_actions() const {
-    static auto const playerActionPhases = {
-        TurnPhase::WaitingForBuyPropertyInput,
-        TurnPhase::WaitingForBids,
-    };
-    return std::find(playerActionPhases.begin(), playerActionPhases.end(), phase) != playerActionPhases.end();
-}
-
 std::pair<int, int> GameState::random_dice_roll() {
     std::uniform_int_distribution<int> rollDie(1, 6);
     lastDiceRoll = std::pair<int, int>{ rollDie(rng), rollDie(rng) };
@@ -340,7 +337,7 @@ bool GameState::check_if_player_is_allowed_to_auction_property(int actorIndex) c
         return false;
     }
     auto ownerIndex = get_property_owner_index(landedOnProperty);
-    assert(ownerIndex == Player::None); // shouldn't be waiting for buy if play owned
+    assert(ownerIndex == Player::None); // shouldn't be waiting for buy if player owned
     if (ownerIndex != Player::None) {
         return false;
     }
@@ -348,7 +345,7 @@ bool GameState::check_if_player_is_allowed_to_auction_property(int actorIndex) c
 }
 
 bool GameState::check_if_player_is_allowed_to_mortgage(int actorIndex, Property property) const {
-    if (phase == TurnPhase::WaitingForBids) {
+    if (phase == TurnPhase::WaitingForBids || phase == TurnPhase::GameOver) {
         return false;
     }
     if (get_controlling_player_index () != actorIndex) {
@@ -367,7 +364,9 @@ bool GameState::check_if_player_is_allowed_to_mortgage(int actorIndex, Property 
 }
 
 bool GameState::check_if_player_is_allowed_to_unmortgage(int actorIndex, Property property) const {
-    if (phase == TurnPhase::WaitingForBids || phase == TurnPhase::WaitingForDebtSettlement) {
+    if (phase == TurnPhase::WaitingForBids ||
+        phase == TurnPhase::WaitingForDebtSettlement ||
+        phase == TurnPhase::GameOver) {
         return false;
     }
     if (get_controlling_player_index () != actorIndex) {
@@ -386,7 +385,12 @@ bool GameState::check_if_player_is_allowed_to_unmortgage(int actorIndex, Propert
 }
 
 bool GameState::check_if_player_is_allowed_to_buy_building(int actorIndex, Property property) const {
-    if (phase == TurnPhase::WaitingForBids || phase == TurnPhase::WaitingForDebtSettlement) {
+    if (property == Property::Invalid) {
+        return false;
+    }
+    if (phase == TurnPhase::WaitingForBids ||
+        phase == TurnPhase::WaitingForDebtSettlement ||
+        phase == TurnPhase::GameOver) {
         return false;
     }
     if (get_controlling_player_index () != actorIndex) {
@@ -422,7 +426,11 @@ bool GameState::check_if_player_is_allowed_to_buy_building(int actorIndex, Prope
 }
 
 bool GameState::check_if_player_is_allowed_to_sell_building(int actorIndex, Property property) const {
-    if (phase == TurnPhase::WaitingForBids) {
+    if (property == Property::Invalid) {
+        return false;
+    }
+    if (phase == TurnPhase::WaitingForBids ||
+        phase == TurnPhase::GameOver) {
         return false;
     }
     if (get_controlling_player_index () != actorIndex) {
@@ -452,7 +460,8 @@ bool GameState::check_if_player_is_allowed_to_sell_building(int actorIndex, Prop
 }
 
 bool GameState::check_if_player_is_allowed_to_sell_all_buildings(int actorIndex, PropertyGroup group) const {
-    if (phase == TurnPhase::WaitingForBids) {
+    if (phase == TurnPhase::WaitingForBids ||
+        phase == TurnPhase::GameOver) {
         return false;
     }
     if (get_controlling_player_index () != actorIndex) {
@@ -519,6 +528,9 @@ bool GameState::check_if_player_is_allowed_to_end_turn(int actorIndex) const {
 
 bool GameState::check_if_player_is_allowed_to_resign(int actorIndex) const {
     if (get_controlling_player_index () != actorIndex) {
+        return false;
+    }
+    if (phase == TurnPhase::GameOver) {
         return false;
     }
     return true;
@@ -726,6 +738,9 @@ void GameState::player_action_resign(int resigneeIndex) {
     }
     else {
 		force_bankrupt_by_bank(resigneeIndex);
+    }
+    if (check_if_player_is_allowed_to_auction_property (resigneeIndex)) {
+        player_action_auction_property(resigneeIndex);
     }
     if (check_if_player_is_allowed_to_decline_trade (resigneeIndex)) {
         player_action_decline_trade(resigneeIndex);
@@ -1109,6 +1124,7 @@ void GameState::force_bankrupt_by_bank(int debtorPlayerIndex) {
         propertiesPendingAuction.push(property);
     }
     debtor.funds = 0;
+    bank.deeds.insert(debtor.deeds.begin(), debtor.deeds.end());
     debtor.deeds.clear();
     force_return_get_out_of_jail_free_cards(debtorPlayerIndex);
 }
@@ -1180,7 +1196,10 @@ std::map<DeckType, Deck> GameState::init_decks(GameSetup const& setup) {
 }
 
 void GameState::resolve_game_state() {
-    if (pendingTradeAgreement.has_value ()) {
+    if (get_players_remaining_count () < 2) {
+        phase = TurnPhase::GameOver;
+    }
+    else if (pendingTradeAgreement.has_value ()) {
         phase = TurnPhase::WaitingForTradeOfferResponse;
     }
     else if (!pendingDebtSettlements.empty()) {
