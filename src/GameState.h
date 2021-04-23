@@ -216,6 +216,7 @@ namespace monopoly
         bool check_if_player_is_allowed_to_sell_all_buildings(int actorIndex, PropertyGroup property) const;
         bool check_if_player_is_allowed_to_bid(int actorIndex, int amount) const;
         bool check_if_player_is_allowed_to_decline_bid(int actorIndex) const;
+        bool check_if_player_is_allowed_to_trade_with_player(int actorIndex, int consideringIndex) const;
         bool check_if_player_is_allowed_to_decline_trade(int actorIndex) const;
         bool check_if_player_is_allowed_to_end_turn(int actorIndex) const;
         bool check_if_player_is_allowed_to_resign(int actorIndex) const;

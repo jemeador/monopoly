@@ -7,10 +7,10 @@
     display: inline-block;
     font-size: 32px;
     cursor: pointer;
-    width: 40%;
     height: 20%;
     z-index: 1;
     font-family: 'Righteous';
+    user-select: none;
 }
 
 .bid {
@@ -51,6 +51,16 @@
     padding: 5px;
 }
 
+.small-icon {
+    font-size: 24px;
+    padding: 5px;
+}
+
+table {
+    min-width: 50%;
+    user-select: none;
+}
+
 #finishManageButton {
     box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
 }
@@ -71,6 +81,7 @@
     position: absolute;
     top: 2.5%;
     right: 2.5%;
+    width: 40%;
 }
 
 .topLeft
@@ -78,6 +89,7 @@
     position: absolute;
     top: 2.5%;
     left: 2.5%;
+    width: 60%;
 }
 
 .bottomRight
@@ -86,6 +98,7 @@
     position: absolute;
     bottom: 2.5%;
     right: 2.5%;
+    width: 40%;
 }
 
 .bottomLeft
@@ -94,6 +107,7 @@
     position: absolute;
     bottom: 2.5%;
     left: 2.5%;
+    width: 40%;
 }
 
 table {
@@ -112,6 +126,7 @@ th, td {
     align-items: center;
     justify-content: center;
     text-align: center;
+    width: 40%;
 }
 
 .middleRight {
@@ -155,4 +170,3 @@ th, td {
     justify-content: center;
     position: relative;
 }
-

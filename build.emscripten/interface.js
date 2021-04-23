@@ -25,6 +25,131 @@ const bidIncrements = [
     50,
 ];
 
+var manageModeOn = false;
+var tradePartner = -1;
+var selectedProperty = -1;
+
+var getPlayerIndex = function (gameState) {
+    return gameState.get_controlling_player_index();
+};
+var addToBid = function (state, increment) {
+    return state.get_current_auction ().highestBid + increment;
+}
+
+var setElementVisibility = (element, visible) => {
+    if (visible) {
+        element.style.display = 'block';
+    }
+    else {
+        element.style.display = 'none';
+    }
+};
+
+function updateInputButtons(gameState) {
+    const thisPlayerIndex = getPlayerIndex(gameState);
+    const tradeModeOn = tradePartner != -1;
+    const altModeOn = manageModeOn || tradePartner != -1;
+    setElementVisibility(rollButton, ! altModeOn && gameState.check_if_player_is_allowed_to_roll(thisPlayerIndex));
+    setElementVisibility(buyPropertyButton, ! altModeOn && gameState.check_if_player_is_allowed_to_buy_property(thisPlayerIndex));
+    setElementVisibility(auctionPropertyButton, ! altModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
+    setElementVisibility(useGetOutOfJailFreeCardButton, ! altModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
+    setElementVisibility(payBailButton, ! altModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
+    for (i = 0; i < bidIncrements.length; ++i) {
+        const increment = bidIncrements[i];
+        setElementVisibility(bidButton(increment), ! altModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, addToBid (gameState, increment)));
+    }
+    setElementVisibility(auctionAmountLabel, ! altModeOn && gameState.get_turn_phase() == Module.TurnPhase.WaitingForBids);
+    setElementVisibility(declineBidButton, ! altModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
+    setElementVisibility(endTurnButton, ! altModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
+    setElementVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
+    setElementVisibility(startManageButton, ! altModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
+    setElementVisibility(finishManageButton, manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
+    setElementVisibility(mortgageButton, manageModeOn && gameState.check_if_player_is_allowed_to_mortgage(thisPlayerIndex, selectedProperty));
+    setElementVisibility(unmortgageButton, manageModeOn && gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
+    setElementVisibility(sellBuildingButton, manageModeOn && gameState.check_if_player_is_allowed_to_sell_building(thisPlayerIndex, selectedProperty));
+    setElementVisibility(buyBuildingButton, manageModeOn && gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
+    setElementVisibility(declineTradeButton, tradeModeOn && gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
+    setElementVisibility(cancelTradeButton, tradeModeOn && ! gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
+
+    const playerSpace = gameState.get_player_position(gameState.get_active_player_index());
+    if (Module.space_is_property(playerSpace)) {
+        const propertyPrice = Module.price_of_property(Module.space_to_property(playerSpace));
+        var propertyPriceLabel = document.getElementById("propertyPriceLabel");
+        propertyPriceLabel.innerHTML = "$" + propertyPrice; 
+    }
+}
+
+let createIconHTML = (iconName) => {
+    iconElement = document.createElement("i");
+    iconElement.setAttribute("class", "small-icon fas fa-" + iconName);
+    return iconElement;
+}
+
+let addPlayerTableRow = (gameState, table, playerCount, playerIndex) => {
+    let row = table.insertRow();
+    row.setAttribute("id", "playerTableRow_" + playerIndex)
+    row.setAttribute("display", "block");
+    let nameCell = row.insertCell();
+    nameCell.appendChild (document.createTextNode(Module.player_name(playerIndex)))
+    let fundsCell = row.insertCell();
+    row.setAttribute("height", 100 / playerCount + "%");
+    fundsCell.setAttribute("id", "playerTableFunds_" + playerIndex)
+    fundsCell.setAttribute("width", "40%");
+    fundsCell.appendChild (document.createTextNode("1500"))
+    let tradeButtonCell = row.insertCell();
+    let tradeButton = document.createElement("button");
+    tradeButtonCell.appendChild(tradeButton);
+    tradeButton.setAttribute("id", "tradeWithPlayerButton_" + playerIndex);
+    tradeButton.setAttribute("type", "button");
+    tradeButton.setAttribute("class", "button");
+    tradeButton.appendChild(createIconHTML("exchange-alt"));
+    tradeButton.onclick = function () {
+        tradePartner = playerIndex;
+        manageModeOn = false;
+        updateInputButtons(gameState);
+        paintBoard(gameState);
+    };
+}
+
+let updatePlayerTable = (gameState) => {
+    let table = document.getElementById("playerTable");
+    const controllingPlayerIndex = gameState.get_controlling_player_index();
+    
+    for (let p = 0; p < table.rows.length; ++p) {
+        let row = table.rows[p];
+        if (gameState.get_player_eliminated(p)) {
+            row.style.color = 'silver';
+            row.style.background = 'white';
+        }
+        else if (controllingPlayerIndex == p) {
+            row.style.backgroundColor = playerColors[p];
+            row.style.color = 'white';
+        }
+        else {
+            row.style.background = 'white';
+            row.style.color = playerColors[p];
+        }
+        let fundsCell = document.getElementById("playerTableFunds_" + p);
+        let tradeButton = document.getElementById("tradeWithPlayerButton_" + p);
+        fundsCell.textContent = gameState.get_player_funds(p);
+        if (gameState.check_if_player_is_allowed_to_trade_with_player (controllingPlayerIndex, p)) {
+            tradeButton.style.visibility = 'visible';
+        }
+        else {
+            tradeButton.style.visibility = 'hidden';
+        }
+    }
+}
+
+let buildPlayerTable = (gameState) => {
+    let table = document.getElementById("playerTable");
+    const playerCount = gameState.get_player_count();
+    
+    for (let p = 0; p < playerCount; ++p) {
+        addPlayerTableRow(gameState, table, playerCount, p);
+    }
+}
+
 const playerIcons = [
     "\uf21a", // fa-ship
     "\uf544", // fa-robot
@@ -65,38 +190,8 @@ var makeFont = (pixelSize, fontFamily) => {
     return pixelSize + "px " + fontFamily;
 };
 
-var setElementVisibility = (element, visible) => {
-    if (visible) {
-        element.style.display = 'block';
-    }
-    else {
-        element.style.display = 'none';
-    }
-};
-
 var Module = {
     onRuntimeInitialized: function () {
-        var gameState = new Module.GameState;
-        var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
-            waitForInput: function () {
-                updateInputButtons(gameState);
-                paintBoard(gameState);
-            },
-            // C++ override
-            get_setup: function () {
-                return {
-                    seed: "monopolyRandomSeed!",
-                    playerCount: 4,
-                    startingFunds: 1500,
-                };
-            },
-            // C++ override
-            update: function (state_) {
-                gameState.assign (state_);
-                this.waitForInput();
-            },
-        });
-
         var rollButton = document.getElementById("rollButton");
         var buyPropertyButton = document.getElementById("buyPropertyButton");
         var auctionPropertyButton = document.getElementById("auctionPropertyButton");
@@ -111,21 +206,37 @@ var Module = {
         var unmortgageButton = document.getElementById("unmortgageButton");
         var sellBuildingButton = document.getElementById("sellBuildingButton");
         var buyBuildingButton = document.getElementById("buyBuildingButton");
-        var addToBid = function (state, increment) {
-            return state.get_current_auction ().highestBid + increment;
-        }
-        var getPlayerIndex = function (state_) {
-            return state_.get_controlling_player_index();
-        };
-        var manageModeOn = false;
-        var selectedProperty = Module.Property.Invalid;
+        //var offerTradeButton = document.getElementById("offerTradeButton");
+        var declineTradeButton = document.getElementById("declineTradeButton");
+        var cancelTradeButton = document.getElementById("cancelTradeButton");
+
+        var gameState = new Module.GameState;
+        var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
+            waitForInput: function () {
+                updateInputButtons(gameState);
+                paintBoard(gameState);
+            },
+            // C++ override
+            get_setup: function () {
+                return {
+                    seed: "monopolyRandomSeed!",
+                    playerCount: 2,
+                    startingFunds: 1500,
+                };
+            },
+            // C++ override
+            update: function (state_) {
+                gameState.assign (state_);
+                this.waitForInput();
+            },
+        });
 
         // Ensure font awesome is loaded before we draw icons
         setTimeout(start, 100) // Yucky, we should actually wait until font awesome is loaded
         function start() {
             var interface = new JavascriptInterface;
             var game = new Module.Game(interface);
-            game.set_state(gameState);
+            buildPlayerTable(gameState);
 
             let getSpaceClicked = (canvas, event) => {
                 const boundingRect = canvas.getBoundingClientRect();
@@ -164,9 +275,9 @@ var Module = {
                 return space;
             }
 
-            let selectProperty = (property) => {
+            let selectProperty = (gameState, property) => {
                 selectedProperty = property;
-                updateInputButtons();
+                updateInputButtons(gameState);
                 paintBoard(gameState);
             }
 
@@ -180,13 +291,13 @@ var Module = {
                         const ownerIndex = gameState.get_property_owner_index(property);
                         if (ownerIndex == getPlayerIndex(gameState)) {
                             if (selectedProperty != property) {
-                                selectProperty(property)
+                                selectProperty(gameState, property)
                                 return;
                             }
                         }
                     }
                 }
-                selectProperty(Module.Property.Invalid);
+                selectProperty(gameState, Module.Property.Invalid);
             }, false);
 
             rollButton.onclick = function () {
@@ -235,7 +346,7 @@ var Module = {
             };
             finishManageButton.onclick = function () {
                 manageModeOn = false;
-                selectedProperty = Module.Property.Invalid;
+                selectedProperty = -1;
                 updateInputButtons(gameState);
                 paintBoard(gameState);
             };
@@ -255,28 +366,15 @@ var Module = {
                 interface.buy_building(getPlayerIndex (gameState), selectedProperty);
                 game.process();
             };
-        }
-        function updateInputButtons(interface) {
-            const thisPlayerIndex = getPlayerIndex(gameState);
-            setElementVisibility(rollButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_roll(thisPlayerIndex));
-            setElementVisibility(buyPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_buy_property(thisPlayerIndex));
-            setElementVisibility(auctionPropertyButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_auction_property(thisPlayerIndex));
-            setElementVisibility(useGetOutOfJailFreeCardButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_use_get_out_jail_free_card(thisPlayerIndex));
-            setElementVisibility(payBailButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_pay_bail(thisPlayerIndex));
-            for (i = 0; i < bidIncrements.length; ++i) {
-                const increment = bidIncrements[i];
-                setElementVisibility(bidButton(increment), ! manageModeOn && gameState.check_if_player_is_allowed_to_bid(thisPlayerIndex, addToBid (gameState, increment)));
-            }
-            setElementVisibility(auctionAmountLabel, !manageModeOn && gameState.get_turn_phase() == Module.TurnPhase.WaitingForBids);
-            setElementVisibility(declineBidButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_decline_bid(thisPlayerIndex));
-            setElementVisibility(endTurnButton, ! manageModeOn && gameState.check_if_player_is_allowed_to_end_turn(thisPlayerIndex));
-            setElementVisibility(resignButton, gameState.check_if_player_is_allowed_to_resign(thisPlayerIndex));
-            setElementVisibility(startManageButton, ! manageModeOn && gameState.get_controlling_player_index() == thisPlayerIndex);
-            setElementVisibility(finishManageButton, gameState.get_controlling_player_index() == thisPlayerIndex && manageModeOn);
-            setElementVisibility(mortgageButton, gameState.check_if_player_is_allowed_to_mortgage(thisPlayerIndex, selectedProperty));
-            setElementVisibility(unmortgageButton, gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
-            setElementVisibility(sellBuildingButton, gameState.check_if_player_is_allowed_to_sell_building(thisPlayerIndex, selectedProperty));
-            setElementVisibility(buyBuildingButton, gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
+            declineTradeButton.onclick = function () {
+                interface.declineTradeButton(getPlayerIndex (gameState));
+                game.process();
+            };
+            cancelTradeButton.onclick = function () {
+                tradePartner = -1;
+                updateInputButtons(gameState);
+                paintBoard(gameState);
+            };
         }
         function paintBoard(gameState) {
 
@@ -321,38 +419,12 @@ var Module = {
                 }
             };
 
-            let drawPlayerFunds = (ctx, space) => {
-                let table = document.getElementById("playerTable");
-                table.innerHTML = "";
-                let playerTableData = [];
-                const controllingPlayerIndex = gameState.get_controlling_player_index();
-                
-                for (let p = 0; p < gameState.get_player_count(); ++p) {
-                    if (gameState.get_player_eliminated(p))
-                        continue;
-                    let row = table.insertRow();
-                    let playerData = [Module.player_name(p), "$" + gameState.get_player_funds(p)];
-                    for (key in playerData) {
-                        let cell = row.insertCell();
-                        let text = document.createTextNode (playerData[key]);
-                        cell.appendChild(text);
-                        if (controllingPlayerIndex == p) {
-                            cell.style.backgroundColor = playerColors[p];
-                            cell.style.color = 'white';
-                        }
-                        else {
-                            cell.style.color = playerColors[p];
-                        }
-                    }
-                }
-            }
-
             let updateDiceDisplay = () => {
                 var d1 = document.getElementById("die1");
                 var d2 = document.getElementById("die2");
                 var diceValues = gameState.get_last_dice_roll();
-                const controllingPlayerIndex = gameState.get_controlling_player_index();
-                const dieColor = playerColors[controllingPlayerIndex];
+                const activePlayerIndex = gameState.get_active_player_index();
+                const dieColor = playerColors[activePlayerIndex];
 
                 let updateDieDisplay = (dieElement, value) => {
                     if (Module.can) {
@@ -589,7 +661,7 @@ var Module = {
 
             let drawSpace = (ctx, space) => {
                 ctx.save();
-                if (space == gameState.get_player_position(gameState.get_controlling_player_index()) &&
+                if (space == gameState.get_player_position(gameState.get_active_player_index()) &&
                     ! manageModeOn) {
                     ctx.fillStyle = highlightColor;
                 }
@@ -684,7 +756,7 @@ var Module = {
             ctx.strokeRect(0, 0, boardWidth, boardHeight);
             operateOnSpaces(ctx, drawSpace)
             drawPlayerPieces(ctx);
-            drawPlayerFunds(ctx);
+            updatePlayerTable(gameState);
             updateDiceDisplay();
             updateButtonColors();
             updateAuctionLabels();

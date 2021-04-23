@@ -506,6 +506,19 @@ bool GameState::check_if_player_is_allowed_to_decline_bid(int actorIndex) const 
     return true;
 }
 
+bool GameState::check_if_player_is_allowed_to_trade_with_player(int actorIndex, int consideringIndex) const {
+    if (phase == TurnPhase::WaitingForBids) {
+        return false;
+    }
+    if (get_controlling_player_index() != actorIndex) {
+        return false;
+    }
+    if (actorIndex == consideringIndex) {
+        return false;
+    }
+    return true;
+}
+
 bool GameState::check_if_player_is_allowed_to_decline_trade(int actorIndex) const {
     if (phase != TurnPhase::WaitingForTradeOfferResponse) {
         return false;

@@ -363,6 +363,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .function("check_if_player_is_allowed_to_sell_all_buildings", &GameState::check_if_player_is_allowed_to_sell_all_buildings)
         .function("check_if_player_is_allowed_to_bid", &GameState::check_if_player_is_allowed_to_bid)
         .function("check_if_player_is_allowed_to_decline_bid", &GameState::check_if_player_is_allowed_to_decline_bid)
+        .function("check_if_player_is_allowed_to_trade_with_player", &GameState::check_if_player_is_allowed_to_trade_with_player)
         .function("check_if_player_is_allowed_to_decline_trade", &GameState::check_if_player_is_allowed_to_decline_trade)
         .function("check_if_player_is_allowed_to_end_turn", &GameState::check_if_player_is_allowed_to_end_turn)
         .function("check_if_player_is_allowed_to_resign", &GameState::check_if_player_is_allowed_to_resign)
