@@ -100,7 +100,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
 
     function("deck_type_to_string", select_overload<std::string(DeckType)>(&to_string));
     function("space_to_string", select_overload<std::string(Space)>(&to_string));
-    function("proprety_to_string", select_overload<std::string(Property)>(&to_string));
+    function("property_to_string", select_overload<std::string(Property)>(&to_string));
     function("property_group_to_string", select_overload<std::string(PropertyGroup)>(&to_string));
     function("card_to_string", select_overload<std::string(Card)>(&to_string));
     function("to_string", select_overload<std::string(TurnPhase)>(&to_string));
@@ -236,7 +236,6 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
     function("price_of_property", &price_of_property);
     function("property_group", &property_group);
     function("properties_in_group", &properties_in_group);
-    function("property_is_in_group", &property_is_in_group);
     function("property_is_in_group", &property_is_in_group);
     function("all_properties", &all_properties);
     function("real_estate_table_lookup", &real_estate_table_lookup);

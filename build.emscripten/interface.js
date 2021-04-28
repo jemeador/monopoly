@@ -28,6 +28,7 @@ const bidIncrements = [
 var manageModeOn = false;
 var tradePartner = -1;
 var selectedProperty = -1;
+var trade = null;
 
 var getPlayerIndex = function (gameState) {
     return gameState.get_controlling_player_index();
@@ -36,9 +37,26 @@ var addToBid = function (state, increment) {
     return state.get_current_auction ().highestBid + increment;
 }
 
+let resetTrade = (offeringPlayerIndex, consideringPlayerIndex) => {
+    trade = {
+        offeringPlayer: offeringPlayerIndex,
+        consideringPlayer: consideringPlayerIndex,
+        offer: {
+            cash: 0,
+            deeds: new Set (),
+            getOutOfJailFreeCards: [],
+        },
+        consideration: {
+            cash: 0,
+            deeds: new Set (),
+            getOutOfJailFreeCards: [],
+        }
+    };
+}
+
 var setElementVisibility = (element, visible) => {
     if (visible) {
-        element.style.display = 'block';
+        element.style.display = 'inline';
     }
     else {
         element.style.display = 'none';
@@ -70,6 +88,8 @@ function updateInputButtons(gameState) {
     setElementVisibility(buyBuildingButton, manageModeOn && gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
     setElementVisibility(declineTradeButton, tradeModeOn && gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
     setElementVisibility(cancelTradeButton, tradeModeOn && ! gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
+    setElementVisibility(diceLabel, ! tradeModeOn);
+    setElementVisibility(tradeTable, tradeModeOn);
 
     const playerSpace = gameState.get_player_position(gameState.get_active_player_index());
     if (Module.space_is_property(playerSpace)) {
@@ -107,7 +127,8 @@ let addPlayerTableRow = (gameState, table, playerCount, playerIndex) => {
         tradePartner = playerIndex;
         manageModeOn = false;
         updateInputButtons(gameState);
-        paintBoard(gameState);
+        resetTrade(gameState.get_active_player_index(), tradePartner);
+        rebuildTradeTable();
     };
 }
 
@@ -147,6 +168,94 @@ let buildPlayerTable = (gameState) => {
     
     for (let p = 0; p < playerCount; ++p) {
         addPlayerTableRow(gameState, table, playerCount, p);
+    }
+}
+
+let groupIsColored = (group) => {
+    return group != Module.PropertyGroup.Railroad && group != Module.PropertyGroup.Utility;
+}
+
+let groupToColor = (group) => {
+    switch (group) {
+        case Module.PropertyGroup.Brown:
+            return "#590C38";
+        case Module.PropertyGroup.LightBlue:
+            return "#87A5D7";
+        case Module.PropertyGroup.Magenta:
+            return "#EF3878";
+        case Module.PropertyGroup.Orange:
+            return "#F67F23";
+        case Module.PropertyGroup.Red:
+            return "#EF3A25";
+        case Module.PropertyGroup.Yellow:
+            return "#FEE703";
+        case Module.PropertyGroup.Green:
+            return "#13A55C";
+        case Module.PropertyGroup.Blue:
+            return "#284EA1";
+        case Module.PropertyGroup.Railroad:
+            return "#000000";
+        case Module.PropertyGroup.Utility:
+            return "#483C32";
+    }
+}
+
+// Stack Overflow
+// "How to decide font color in white or black depending on background color?"
+// https://stackoverflow.com/a/41491220
+// - SudoPlz
+function pickTextColorBasedOnBgColor(bgColor, lightColor = '#FFFFFF', darkColor = '#000000') {
+    var color = (bgColor.charAt(0) === '#') ? bgColor.substring(1, 7) : bgColor;
+    var r = parseInt(color.substring(0, 2), 16); // hexToR
+    var g = parseInt(color.substring(2, 4), 16); // hexToG
+    var b = parseInt(color.substring(4, 6), 16); // hexToB
+    var uicolors = [r / 255, g / 255, b / 255];
+    var c = uicolors.map((col) => {
+        if (col <= 0.03928) {
+            return col / 12.92;
+        }
+        return Math.pow((col + 0.055) / 1.055, 2.4);
+    });
+    var L = (0.2126 * c[0]) + (0.7152 * c[1]) + (0.0722 * c[2]);
+    return (L > 0.179) ? darkColor : lightColor;
+}
+
+let addCell = (tableRow, rowIndex, items) => {
+    let cell = tableRow.insertCell();
+    let property = items[rowIndex];
+    cell.setAttribute("width", "50%");
+    if (rowIndex < items.length) {
+        let bgColor = groupToColor(Module.property_group(property));
+        cell.style.backgroundColor = bgColor;
+        cell.style.color = pickTextColorBasedOnBgColor(bgColor);
+        cell.appendChild(document.createTextNode(Module.property_to_string(property)));
+    }
+}
+
+let rebuildTradeTable = () => {
+    tradeTable.innerHTML = "";
+    let thead = tradeTable.createTHead();
+    let headerRow = thead.insertRow();
+    let offerHeader = document.createElement("th");
+    offerHeader.appendChild(document.createTextNode ("Offer"));
+    let considerationHeader = document.createElement("th");
+    considerationHeader.appendChild(document.createTextNode ("Consideration"));
+    headerRow.appendChild(offerHeader);
+    headerRow.appendChild(considerationHeader);
+
+    let offers = [... trade.offer.deeds];
+    let considerations = [... trade.consideration.deeds];
+    const offerDeedCount = offers.length;
+    const considerationDeedCount = considerations.length;
+    const rowCount = Math.max(offerDeedCount, considerationDeedCount);
+    
+    for (let r = 0; r < rowCount; ++r) {
+        let row = tradeTable.insertRow();
+        row.setAttribute("height", "20%");
+        row.setAttribute("width", "100%");
+        row.setAttribute("display", "block");
+        addCell(row, r, offers);
+        addCell(row, r, considerations);
     }
 }
 
@@ -209,6 +318,7 @@ var Module = {
         //var offerTradeButton = document.getElementById("offerTradeButton");
         var declineTradeButton = document.getElementById("declineTradeButton");
         var cancelTradeButton = document.getElementById("cancelTradeButton");
+        var tradeTable = document.getElementById("tradeTable");
 
         var gameState = new Module.GameState;
         var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
@@ -281,17 +391,44 @@ var Module = {
                 paintBoard(gameState);
             }
 
+            let selectForDeeds = (deeds, property) => {
+                if (deeds.has (property))
+                    deeds.delete(property);
+                else
+                    deeds.add(property);
+                rebuildTradeTable();
+            }
+            let selectForOffer = (property) => {
+                selectForDeeds(trade.offer.deeds, property);
+            }
+            let selectForConsideration = (property) => {
+                selectForDeeds(trade.consideration.deeds, property);
+            }
+
             var canvas = document.getElementById("boardCanvas");
 
             canvas.addEventListener("click", function (e) {
-                if (manageModeOn) {
+                const canSelectProperties = manageModeOn || tradePartner != -1;
+                if (canSelectProperties) {
                     const space = getSpaceClicked(canvas, e);
                     const property = Module.space_to_property(space);
                     if (property != Module.Property.Invalid) {
                         const ownerIndex = gameState.get_property_owner_index(property);
-                        if (ownerIndex == getPlayerIndex(gameState)) {
-                            if (selectedProperty != property) {
-                                selectProperty(gameState, property)
+                        if (manageModeOn) {
+                            if (ownerIndex == getPlayerIndex(gameState)) {
+                                if (selectedProperty != property) {
+                                    selectProperty(gameState, property)
+                                    return;
+                                }
+                            }
+                        }
+                        else if (tradePartner != -1) {
+                            if (ownerIndex == getPlayerIndex(gameState)) {
+                                selectForOffer(property);
+                                return;
+                            }
+                            else if (ownerIndex == tradePartner) {
+                                selectForConsideration(property);
                                 return;
                             }
                         }
@@ -461,29 +598,6 @@ var Module = {
                 }
             }
 
-            let groupToColor = (group) => {
-                switch (group) {
-                    case Module.PropertyGroup.Brown:
-                        return "Brown";
-                    case Module.PropertyGroup.LightBlue:
-                        return "LightBlue";
-                    case Module.PropertyGroup.Magenta:
-                        return "Magenta";
-                    case Module.PropertyGroup.Orange:
-                        return "Orange";
-                    case Module.PropertyGroup.Red:
-                        return "Red";
-                    case Module.PropertyGroup.Yellow:
-                        return "Yellow";
-                    case Module.PropertyGroup.Green:
-                        return "Green";
-                    case Module.PropertyGroup.Blue:
-                        return "Blue";
-                    default:
-                        return "";
-                }
-            }
-
             let isCornerSpace = (space) => {
                 return space == Module.Space.Go
                     || space == Module.Space.Jail
@@ -495,12 +609,12 @@ var Module = {
                 const property = Module.space_to_property(space);
                 const group = Module.property_group(property);
                 const color = groupToColor(group);
-                if (color) {
+                if (groupIsColored (group)) {
                     drawColorBar(ctx, color);
                     drawBuildings(ctx, gameState.get_building_level(property));
                 }
                 else {
-                    drawNormalSpace(ctx, space);
+                    drawNormalSpace(ctx, space, color);
                 }
                 drawPropertyPrice(ctx, property);
                 const playerIndex = gameState.get_property_owner_index(property);
@@ -644,10 +758,10 @@ var Module = {
                 }
             }
 
-            let drawNormalSpace = (ctx, space) => {
+            let drawNormalSpace = (ctx, space, color = basicIconColor) => {
                 ctx.save();
                 ctx.translate(spaceWidth / 2, spaceHeight / 2);
-                drawIcon(ctx, basicIconColor, spaceIconSize, spaceToIcon(space));
+                drawIcon(ctx, color, spaceIconSize, spaceToIcon(space));
                 ctx.restore();
             }
 
