@@ -4,6 +4,7 @@
 #include"Board.h"
 #include"Player.h"
 
+#include<algorithm>
 #include<list>
 #include<map>
 #include<optional>
@@ -122,6 +123,38 @@ namespace monopoly
                 getOutOfJailFreeCards == rhs.getOutOfJailFreeCards;
         }
         bool operator!= (Promise const& rhs) const { return !operator== (rhs); }
+
+        // Provided for emscripten, embind doesn't work well with STD containers
+        int get_cash() const {
+            return cash;
+        }
+        void set_cash(int c) {
+            cash = c;
+        }
+        int deed_count() const {
+            return deeds.size();
+        }
+        Property deed_at(int i) const {
+            auto it = std::begin(deeds);
+            std::advance(it, i);
+            return *it;
+        }
+        bool contains_deed(Property deed) {
+            return deeds.count(deed);
+        }
+        void toggle_deed(Property deed) {
+            auto const ret = deeds.insert(deed);
+            if (! ret.second)
+                deeds.erase(ret.first);
+        }
+        bool contains_card(DeckType card) {
+            return getOutOfJailFreeCards.count(card);
+        }
+        void toggle_card(DeckType card) {
+            auto const ret = getOutOfJailFreeCards.insert(card);
+            if (! ret.second)
+                getOutOfJailFreeCards.erase(ret.first);
+        }
     };
 
     struct Trade {
@@ -193,6 +226,7 @@ namespace monopoly
         int get_min_building_level_in_group(PropertyGroup group) const;
         int get_max_building_level_in_group(PropertyGroup group) const;
         std::map<Property, int> const& get_building_levels() const;
+        Trade get_pending_trade_offer() const;
         Auction get_current_auction() const;
         int calculate_rent(Property property) const;
         int calculate_closing_costs_on_sale(Property property) const;

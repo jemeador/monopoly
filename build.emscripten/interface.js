@@ -26,8 +26,9 @@ const bidIncrements = [
 ];
 
 var manageModeOn = false;
-var tradePartner = -1;
 var selectedProperty = -1;
+var tradePartner = -1;
+var pendingTrade = null;
 var trade = null;
 
 var getPlayerIndex = function (gameState) {
@@ -37,20 +38,12 @@ var addToBid = function (state, increment) {
     return state.get_current_auction ().highestBid + increment;
 }
 
-let resetTrade = (offeringPlayerIndex, consideringPlayerIndex) => {
+let startTrade = (offeringPlayerIndex, consideringPlayerIndex) => {
     trade = {
         offeringPlayer: offeringPlayerIndex,
         consideringPlayer: consideringPlayerIndex,
-        offer: {
-            cash: 0,
-            deeds: new Set (),
-            getOutOfJailFreeCards: [],
-        },
-        consideration: {
-            cash: 0,
-            deeds: new Set (),
-            getOutOfJailFreeCards: [],
-        }
+        offer: new Module.Promise (),
+        consideration: new Module.Promise (),
     };
 }
 
@@ -62,6 +55,20 @@ var setElementVisibility = (element, visible) => {
         element.style.display = 'none';
     }
 };
+
+function updateTradeState(gameState) {
+    const isTradePending = gameState.get_turn_phase() == Module.TurnPhase.WaitingForTradeOfferResponse;
+    if (isTradePending) {
+        pendingTrade = gameState.get_pending_trade_offer();
+        trade = Module.reciprocal_trade(pendingTrade);
+        tradePartner = trade.consideringPlayer;
+    }
+    else {
+        pendingTrade = null;
+        trade = null;
+        tradePartner = -1;
+    }
+}
 
 function updateInputButtons(gameState) {
     const thisPlayerIndex = getPlayerIndex(gameState);
@@ -86,16 +93,29 @@ function updateInputButtons(gameState) {
     setElementVisibility(unmortgageButton, manageModeOn && gameState.check_if_player_is_allowed_to_unmortgage(thisPlayerIndex, selectedProperty));
     setElementVisibility(sellBuildingButton, manageModeOn && gameState.check_if_player_is_allowed_to_sell_building(thisPlayerIndex, selectedProperty));
     setElementVisibility(buyBuildingButton, manageModeOn && gameState.check_if_player_is_allowed_to_buy_building(thisPlayerIndex, selectedProperty));
+    setElementVisibility(offerTradeButton, tradeModeOn && trade && gameState.check_if_trade_is_valid(trade));
     setElementVisibility(declineTradeButton, tradeModeOn && gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
     setElementVisibility(cancelTradeButton, tradeModeOn && ! gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
     setElementVisibility(diceLabel, ! tradeModeOn);
     setElementVisibility(tradeTable, tradeModeOn);
+
+    if (pendingTrade && Module.trades_are_reciprocal(pendingTrade, trade)) {
+        var buttonText = offerTradeButton.innerHTML;
+        offerTradeButton.innerHTML = buttonText.replace("Offer", "Accept");
+    }
+    else {
+        var buttonText = offerTradeButton.innerHTML;
+        offerTradeButton.innerHTML = buttonText.replace("Accept", "Offer");
+    }
 
     const playerSpace = gameState.get_player_position(gameState.get_active_player_index());
     if (Module.space_is_property(playerSpace)) {
         const propertyPrice = Module.price_of_property(Module.space_to_property(playerSpace));
         var propertyPriceLabel = document.getElementById("propertyPriceLabel");
         propertyPriceLabel.innerHTML = "$" + propertyPrice; 
+    }
+    if (tradeModeOn) {
+        rebuildTradeTable();
     }
 }
 
@@ -126,9 +146,8 @@ let addPlayerTableRow = (gameState, table, playerCount, playerIndex) => {
     tradeButton.onclick = function () {
         tradePartner = playerIndex;
         manageModeOn = false;
+        startTrade(gameState.get_active_player_index(), tradePartner);
         updateInputButtons(gameState);
-        resetTrade(gameState.get_active_player_index(), tradePartner);
-        rebuildTradeTable();
     };
 }
 
@@ -153,7 +172,7 @@ let updatePlayerTable = (gameState) => {
         let fundsCell = document.getElementById("playerTableFunds_" + p);
         let tradeButton = document.getElementById("tradeWithPlayerButton_" + p);
         fundsCell.textContent = gameState.get_player_funds(p);
-        if (gameState.check_if_player_is_allowed_to_trade_with_player (controllingPlayerIndex, p)) {
+        if (gameState.check_if_player_is_allowed_to_trade_with_player (controllingPlayerIndex, p) && tradePartner != p) {
             tradeButton.style.visibility = 'visible';
         }
         else {
@@ -220,11 +239,11 @@ function pickTextColorBasedOnBgColor(bgColor, lightColor = '#FFFFFF', darkColor 
     return (L > 0.179) ? darkColor : lightColor;
 }
 
-let addCell = (tableRow, rowIndex, items) => {
+let addCell = (tableRow, rowIndex, promise) => {
     let cell = tableRow.insertCell();
-    let property = items[rowIndex];
     cell.setAttribute("width", "50%");
-    if (rowIndex < items.length) {
+    if (rowIndex < promise.deed_count()) {
+        let property = promise.deed_at(rowIndex);
         let bgColor = groupToColor(Module.property_group(property));
         cell.style.backgroundColor = bgColor;
         cell.style.color = pickTextColorBasedOnBgColor(bgColor);
@@ -243,10 +262,8 @@ let rebuildTradeTable = () => {
     headerRow.appendChild(offerHeader);
     headerRow.appendChild(considerationHeader);
 
-    let offers = [... trade.offer.deeds];
-    let considerations = [... trade.consideration.deeds];
-    const offerDeedCount = offers.length;
-    const considerationDeedCount = considerations.length;
+    const offerDeedCount = trade.offer.deed_count();
+    const considerationDeedCount = trade.consideration.deed_count();
     const rowCount = Math.max(offerDeedCount, considerationDeedCount);
     
     for (let r = 0; r < rowCount; ++r) {
@@ -254,8 +271,8 @@ let rebuildTradeTable = () => {
         row.setAttribute("height", "20%");
         row.setAttribute("width", "100%");
         row.setAttribute("display", "block");
-        addCell(row, r, offers);
-        addCell(row, r, considerations);
+        addCell(row, r, trade.offer);
+        addCell(row, r, trade.consideration);
     }
 }
 
@@ -315,7 +332,7 @@ var Module = {
         var unmortgageButton = document.getElementById("unmortgageButton");
         var sellBuildingButton = document.getElementById("sellBuildingButton");
         var buyBuildingButton = document.getElementById("buyBuildingButton");
-        //var offerTradeButton = document.getElementById("offerTradeButton");
+        var offerTradeButton = document.getElementById("offerTradeButton");
         var declineTradeButton = document.getElementById("declineTradeButton");
         var cancelTradeButton = document.getElementById("cancelTradeButton");
         var tradeTable = document.getElementById("tradeTable");
@@ -323,6 +340,7 @@ var Module = {
         var gameState = new Module.GameState;
         var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
             waitForInput: function () {
+                updateTradeState(gameState);
                 updateInputButtons(gameState);
                 paintBoard(gameState);
             },
@@ -391,18 +409,15 @@ var Module = {
                 paintBoard(gameState);
             }
 
-            let selectForDeeds = (deeds, property) => {
-                if (deeds.has (property))
-                    deeds.delete(property);
-                else
-                    deeds.add(property);
-                rebuildTradeTable();
+            let selectForDeeds = (promise, property) => {
+                promise.toggle_deed(property);
+                updateInputButtons(gameState);
             }
             let selectForOffer = (property) => {
-                selectForDeeds(trade.offer.deeds, property);
+                selectForDeeds(trade.offer, property);
             }
             let selectForConsideration = (property) => {
-                selectForDeeds(trade.consideration.deeds, property);
+                selectForDeeds(trade.consideration, property);
             }
 
             var canvas = document.getElementById("boardCanvas");
@@ -503,8 +518,12 @@ var Module = {
                 interface.buy_building(getPlayerIndex (gameState), selectedProperty);
                 game.process();
             };
+            offerTradeButton.onclick = function () {
+                interface.propose_trade(trade);
+                game.process();
+            };
             declineTradeButton.onclick = function () {
-                interface.declineTradeButton(getPlayerIndex (gameState));
+                interface.decline_trade(getPlayerIndex (gameState));
                 game.process();
             };
             cancelTradeButton.onclick = function () {

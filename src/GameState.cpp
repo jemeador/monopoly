@@ -192,6 +192,10 @@ std::map<Property, int> const& GameState::get_building_levels() const {
     return buildingLevels;
 }
 
+Trade GameState::get_pending_trade_offer() const {
+    return pendingTradeAgreement.value_or(Trade{});
+}
+
 Auction GameState::get_current_auction() const {
     return currentAuction;
 }

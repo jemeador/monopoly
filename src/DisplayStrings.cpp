@@ -70,6 +70,7 @@ namespace {
         case Space::Blue_1: return "Blue_1";
         case Space::LuxuryTax: return "LuxuryTax";
         case Space::Blue_2: return "Blue_2";
+        case Space::Invalid: break;
         }
         return "N/A";
     }
@@ -122,6 +123,7 @@ namespace {
         case PropertyGroup::Blue: return "Blue";
         case PropertyGroup::Utility: return "Utility";
         case PropertyGroup::Railroad: return "Railroad";
+        case PropertyGroup::Invalid: return "Invalid";
         }
         return "N/A";
     }
@@ -200,6 +202,7 @@ std::string monopoly::to_string(TurnPhase phase) {
         case TurnPhase::WaitingForBuyPropertyInput: return "WaitingForBuyPropertyInput";
         case TurnPhase::WaitingForRoll: return "WaitingForRoll";
         case TurnPhase::WaitingForTurnEnd: return "WaitingForTurnEnd";
+        case TurnPhase::GameOver: return "GameOver";
     };
     return "N/A";
 }

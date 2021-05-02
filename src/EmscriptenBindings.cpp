@@ -45,6 +45,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .function("bid", &SimpleInterfaceWrapper::bid)
         .function("decline_bid", &SimpleInterfaceWrapper::decline_bid)
         .function("propose_trade", &SimpleInterfaceWrapper::propose_trade)
+        .function("decline_trade", &SimpleInterfaceWrapper::decline_trade)
         .function("end_turn", &SimpleInterfaceWrapper::end_turn)
         .function("resign", &SimpleInterfaceWrapper::resign)
         .allow_subclass<SimpleInterfaceWrapper>("SimpleInterfaceWrapper")
@@ -291,17 +292,22 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .field("highestBid", &Auction::highestBid)
         .field("biddingOrder", &Auction::biddingOrder)
     ;
-    register_vector<int>("vector<int>");
-    register_vector<Property>("set<Property>");
+    register_vector<int>("VectorOfInt");
     value_object<Debt>("Debt")
         .field("debtor", &Debt::debtor)
         .field("creditor", &Debt::creditor)
         .field("amount", &Debt::amount)
     ;
-    value_object<Promise>("Promise")
-        .field("cash", &Promise::cash)
-        .field("deeds", &Promise::deeds)
-        .field("getOutOfJailFreeCards", &Promise::getOutOfJailFreeCards)
+    class_<Promise>("Promise")
+        .constructor<>()
+        .constructor<Promise>()
+        .property("cash", &Promise::get_cash, &Promise::set_cash)
+        .function("deed_count", &Promise::deed_count)
+        .function("deed_at", &Promise::deed_at)
+        .function("contains_deed", &Promise::contains_deed)
+        .function("toggle_deed", &Promise::toggle_deed)
+        .function("contains_card", &Promise::contains_card)
+        .function("toggle_card", &Promise::toggle_card)
     ;
     value_object<Trade>("Trade")
         .field("offeringPlayer", &Trade::offeringPlayer)
@@ -341,6 +347,7 @@ EMSCRIPTEN_BINDINGS(Monopoly) {
         .function("get_min_building_level_in_group", &GameState::get_min_building_level_in_group)
         .function("get_max_building_level_in_group", &GameState::get_max_building_level_in_group)
         .function("get_building_levels", &GameState::get_building_levels)
+        .function("get_pending_trade_offer", &GameState::get_pending_trade_offer)
         .function("get_current_auction", &GameState::get_current_auction)
         .function("calculate_rent", &GameState::calculate_rent)
         .function("calculate_closing_costs_on_sale", &GameState::calculate_closing_costs_on_sale)
