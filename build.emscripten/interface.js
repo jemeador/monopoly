@@ -58,9 +58,36 @@ var setElementVisibility = (element, visible) => {
 };
 
 function updateTradeSlider(gameState) {
-    tradeSlider.setAttribute("min", -1 * gameState.get_player_funds (gameState.get_controlling_player_index()));
-    tradeSlider.setAttribute("max", gameState.get_player_funds (tradePartner));
+    tradeSlider.setAttribute("min", Math.min (0, -1 * gameState.get_player_funds (gameState.get_controlling_player_index())));
+    tradeSlider.setAttribute("max", Math.max (0, gameState.get_player_funds (tradePartner)));
     tradeSlider.value = trade.offer.cash > 0 ? -trade.offer.cash : trade.consideration.cash;
+}
+
+function updateDeedCard(gameState) {
+    var featuredDeed = selectedProperty;
+    if (featuredDeed == -1 &&
+        gameState.get_turn_phase() == Module.TurnPhase.WaitingForBuyPropertyInput) {
+        const spaceIndex = gameState.get_player_position(gameState.get_active_player_index());
+        featuredDeed = Module.space_to_property(spaceIndex);
+    }
+    if (featuredDeed == -1 || featuredDeed == Module.Property.Invalid) {
+        setElementVisibility(deedTableContainer, false);
+    }
+    else {
+        let bgColor = groupToColor(Module.property_group(featuredDeed));
+        propertyLabel.style.backgroundColor = bgColor;
+        propertyLabel.style.color = pickTextColorBasedOnBgColor(bgColor);
+        propertyLabel.innerHTML = Module.property_to_string(featuredDeed);
+        var baseRentLabel = document.getElementById("baseRentLabel");
+        baseRentLabel.innerHTML = "$" + Module.rent_price_of_real_estate(featuredDeed);
+        for (let i = 0; i <= 5; ++i) {
+            var label = document.getElementById("rent" + i + "Label");
+            label.innerHTML = "$" + Module.rent_price_of_improved_real_estate(featuredDeed, i);
+        }
+        var houseCostLabel = document.getElementById("buildingCostLabel");
+        houseCostLabel.innerHTML = "$" + Module.price_per_house_on_property(featuredDeed);
+        setElementVisibility(deedTableContainer, true);
+    }
 }
 
 function updateTradeState(gameState) {
@@ -123,9 +150,17 @@ function updateInputButtons(gameState) {
         var propertyPriceLabel = document.getElementById("propertyPriceLabel");
         propertyPriceLabel.innerHTML = "$" + propertyPrice; 
     }
+    if (selectedProperty != -1) {
+        var mortgageValueLabel = document.getElementById("mortgageValueLabel");
+        var unmortgagePriceLabel = document.getElementById("unmortgagePriceLabel");
+        mortgageValueLabel.innerHTML = "+$" + Module.mortgage_value_of_property(selectedProperty); 
+        unmortgagePriceLabel.innerHTML = "$" + Module.unmortgage_price_of_property(selectedProperty); 
+    }
     if (tradeModeOn) {
         rebuildTradeTable();
     }
+
+    updateDeedCard(gameState);
 }
 
 let createIconHTML = (iconName) => {
@@ -356,6 +391,7 @@ var Module = {
         var cancelTradeButton = document.getElementById("cancelTradeButton");
         var tradeTable = document.getElementById("tradeTable");
         var tradeSlider = document.getElementById("tradeSlider");
+        var deedTableContainer = document.getElementById("deedTableContainer");
 
         var gameState = new Module.GameState;
         var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
@@ -386,7 +422,7 @@ var Module = {
             var game = new Module.Game(interface);
             buildPlayerTable(gameState);
 
-            let getSpaceClicked = (canvas, event) => {
+            let getSpaceAtEvent = (canvas, event) => {
                 const boundingRect = canvas.getBoundingClientRect();
                 const x = event.clientX - boundingRect.left;
                 const y = event.clientY - boundingRect.top;
@@ -401,7 +437,7 @@ var Module = {
                     side = 0;
                     pxPos = (boardWidth - x) + pxPosOffset;
                 }
-                if (left && !top) {
+                else if (left && !top) {
                     side = 1;
                     pxPos = (boardHeight - y) + pxPosOffset
                 }
@@ -412,6 +448,9 @@ var Module = {
                 else if (right && !bot) {
                     side = 3;
                     pxPos = y + pxPosOffset;
+                }
+                else {
+                    return Module.Space.Invalid;
                 }
 
                 if (pxPos < 0) {
@@ -445,7 +484,7 @@ var Module = {
             canvas.addEventListener("click", function (e) {
                 const canSelectProperties = manageModeOn || tradePartner != -1;
                 if (canSelectProperties) {
-                    const space = getSpaceClicked(canvas, e);
+                    const space = getSpaceAtEvent(canvas, e);
                     const property = Module.space_to_property(space);
                     if (property != Module.Property.Invalid) {
                         const ownerIndex = gameState.get_property_owner_index(property);
@@ -471,6 +510,10 @@ var Module = {
                 }
                 selectProperty(gameState, Module.Property.Invalid);
             }, false);
+            canvas.addEventListener("mousemove", function (e) {
+            });
+            canvas.addEventListener("mouseleave", function (e) {
+            });
 
             rollButton.onclick = function () {
                 interface.roll_dice(getPlayerIndex (gameState));
@@ -632,7 +675,7 @@ var Module = {
             let updateAuctionLabels = () => {
                 var amountLabel = document.getElementById("auctionAmountLabel");
                 const auction = gameState.get_current_auction();
-                const auctionIsActive = auction.biddingOrder.size() > 0;
+                const auctionIsActive = gameState.get_turn_phase() == Module.TurnPhase.WaitingForBids;
                 setElementVisibility(amountLabel, auctionIsActive);
                 if (auctionIsActive) {
                     const winningPlayerIndex = auction.biddingOrder.get(auction.biddingOrder.size () - 1);

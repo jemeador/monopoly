@@ -109,7 +109,23 @@ table {
     border-collapse: collapse;
     min-width: 50%;
     user-select: none;
-    max-height: 50%;
+    display: table;
+}
+
+#deedTable {
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    text-align: left;
+}
+
+#deedTable th,
+#deedTable td {
+    padding: 3px;
+}
+
+#deedTable th {
+    text-align: center;
 }
 
 #tradeContainer {

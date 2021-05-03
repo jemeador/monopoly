@@ -22,6 +22,21 @@
             <div class="topLeft">
                 <table id="playerTable"></table>
             </div>
+            <div class="center" id="deedTableContainer">
+                <table id="deedTable">
+                    <tbody>
+                        <tr> <th id="propertyLabel" colspan="2"> </th></tr>
+                        <tr> <td style="width: 65%">Rent</td> <td id="baseRentLabel" style="width: 35%">$0</td> </tr>
+                        <tr> <td>With set</td> <td id="rent0Label">$0</td> </tr>
+                        <tr> <td>With 1 house</td> <td id="rent1Label">$0</td> </tr>
+                        <tr> <td>With 2 houses</td> <td id="rent2Label">$0</td> </tr>
+                        <tr> <td>With 3 houses</td> <td id="rent3Label">$0</td> </tr>
+                        <tr> <td>With 4 houses</td> <td id="rent4Label">$0</td> </tr>
+                        <tr> <td>With HOTEL</td> <td id="rent5Label">$0</td> </tr>
+                        <tr> <td>Building Cost</td> <td id="buildingCostLabel">$0</td> </tr>
+                    </tbody>
+                </table>
+            </div>
             <div class="center" id="tradeContainer">
                 <input type="range" min="0" max="0" value="0" class="slider" id="tradeSlider">
                 <table id="tradeTable"></table>
@@ -107,11 +122,13 @@
             <button id="mortgageButton"
                     class="button bottomRight"
                     type="button">
+                <div id="mortgageValueLabel">$0</div>
                 Mortgage
             </button>
             <button id="unmortgageButton"
                     class="button bottomLeft"
                     type="button">
+                <div id="unmortgagePriceLabel">$0</div>
                 Unmortgage
             </button>
             <button id="sellBuildingButton"

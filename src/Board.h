@@ -43,12 +43,12 @@ namespace monopoly
             320,  200,   28,  150,  450, 1000, 1200, 1400,  160, // Green 3
             350,  200,   35,  175,  500, 1100, 1300, 1500,  175, // Blue 1
             400,  200,   50,  200,  600, 1400, 1700, 2000,  200, // Blue 2
+            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 1
+            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 2
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 1
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 2
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 3
             200,    0,    0,    0,    0,    0,    0,    0,  100, // Railroad 4
-            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 1
-            150,    0,    0,    0,    0,    0,    0,    0,  75,  // Utility 2
             0,      0,    0,    0,    0,    0,    0,    0,  0,   // Invalid
     };
 
@@ -279,7 +279,13 @@ namespace monopoly
         return real_estate_table_lookup(p, DeedField::Rent);
     }
     inline int rent_price_of_improved_real_estate(Property p, int buildingLevel) {
-        return real_estate_table_lookup(p, static_cast<DeedField> (static_cast<int> (DeedField::Rent) + buildingLevel));
+        int price = real_estate_table_lookup(p, static_cast<DeedField> (static_cast<int> (DeedField::Rent) + buildingLevel));
+        if (buildingLevel == 0) {
+            return price * 2;
+        }
+        else {
+            return price;
+        }
     }
     inline int rent_price_of_railroad(int ownedRailroads) {
         return 25 * pow(2, ownedRailroads - 1);
