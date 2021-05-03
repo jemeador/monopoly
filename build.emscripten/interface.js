@@ -38,13 +38,14 @@ var addToBid = function (state, increment) {
     return state.get_current_auction ().highestBid + increment;
 }
 
-let startTrade = (offeringPlayerIndex, consideringPlayerIndex) => {
+let startTrade = (gameState, offeringPlayerIndex, consideringPlayerIndex) => {
     trade = {
         offeringPlayer: offeringPlayerIndex,
         consideringPlayer: consideringPlayerIndex,
         offer: new Module.Promise (),
         consideration: new Module.Promise (),
     };
+    updateTradeSlider(gameState);
 }
 
 var setElementVisibility = (element, visible) => {
@@ -56,12 +57,19 @@ var setElementVisibility = (element, visible) => {
     }
 };
 
+function updateTradeSlider(gameState) {
+    tradeSlider.setAttribute("min", -1 * gameState.get_player_funds (gameState.get_controlling_player_index()));
+    tradeSlider.setAttribute("max", gameState.get_player_funds (tradePartner));
+    tradeSlider.value = trade.offer.cash > 0 ? -trade.offer.cash : trade.consideration.cash;
+}
+
 function updateTradeState(gameState) {
     const isTradePending = gameState.get_turn_phase() == Module.TurnPhase.WaitingForTradeOfferResponse;
     if (isTradePending) {
         pendingTrade = gameState.get_pending_trade_offer();
         trade = Module.reciprocal_trade(pendingTrade);
         tradePartner = trade.consideringPlayer;
+        updateTradeSlider(gameState);
     }
     else {
         pendingTrade = null;
@@ -98,6 +106,7 @@ function updateInputButtons(gameState) {
     setElementVisibility(cancelTradeButton, tradeModeOn && ! gameState.check_if_player_is_allowed_to_decline_trade(thisPlayerIndex));
     setElementVisibility(diceLabel, ! tradeModeOn);
     setElementVisibility(tradeTable, tradeModeOn);
+    setElementVisibility(tradeSlider, tradeModeOn);
 
     if (pendingTrade && Module.trades_are_reciprocal(pendingTrade, trade)) {
         var buttonText = offerTradeButton.innerHTML;
@@ -146,7 +155,7 @@ let addPlayerTableRow = (gameState, table, playerCount, playerIndex) => {
     tradeButton.onclick = function () {
         tradePartner = playerIndex;
         manageModeOn = false;
-        startTrade(gameState.get_active_player_index(), tradePartner);
+        startTrade(gameState, gameState.get_active_player_index(), tradePartner);
         updateInputButtons(gameState);
     };
 }
@@ -256,9 +265,9 @@ let rebuildTradeTable = () => {
     let thead = tradeTable.createTHead();
     let headerRow = thead.insertRow();
     let offerHeader = document.createElement("th");
-    offerHeader.appendChild(document.createTextNode ("Offer"));
+    offerHeader.appendChild(document.createTextNode ("Give"));
     let considerationHeader = document.createElement("th");
-    considerationHeader.appendChild(document.createTextNode ("Consideration"));
+    considerationHeader.appendChild(document.createTextNode ("Receive"));
     headerRow.appendChild(offerHeader);
     headerRow.appendChild(considerationHeader);
 
@@ -266,6 +275,16 @@ let rebuildTradeTable = () => {
     const considerationDeedCount = trade.consideration.deed_count();
     const rowCount = Math.max(offerDeedCount, considerationDeedCount);
     
+    let row = tradeTable.insertRow();
+    row.setAttribute("height", "20%");
+    row.setAttribute("width", "100%");
+    row.setAttribute("display", "block");
+    let offeringPlayerFundsCell = row.insertCell();
+    let consideringPlayerFundsCell = row.insertCell();
+    offeringPlayerFundsCell.setAttribute("width", "50%");
+    offeringPlayerFundsCell.innerHTML = "$" + trade.offer.cash;
+    consideringPlayerFundsCell.innerHTML = "$" + trade.consideration.cash;
+
     for (let r = 0; r < rowCount; ++r) {
         let row = tradeTable.insertRow();
         row.setAttribute("height", "20%");
@@ -336,6 +355,7 @@ var Module = {
         var declineTradeButton = document.getElementById("declineTradeButton");
         var cancelTradeButton = document.getElementById("cancelTradeButton");
         var tradeTable = document.getElementById("tradeTable");
+        var tradeSlider = document.getElementById("tradeSlider");
 
         var gameState = new Module.GameState;
         var JavascriptInterface = Module.SimpleInterface.extend("SimpleInterface", {
@@ -530,6 +550,11 @@ var Module = {
                 tradePartner = -1;
                 updateInputButtons(gameState);
                 paintBoard(gameState);
+            };
+            tradeSlider.oninput = function () {
+                trade.offer.cash = Math.max(0, -1 * tradeSlider.value);
+                trade.consideration.cash = Math.max(0, tradeSlider.value);
+                updateInputButtons(gameState);
             };
         }
         function paintBoard(gameState) {
