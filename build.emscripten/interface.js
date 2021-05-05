@@ -50,12 +50,19 @@ let startTrade = (gameState, offeringPlayerIndex, consideringPlayerIndex) => {
 
 var setElementVisibility = (element, visible) => {
     if (visible) {
-        element.style.display = 'inline';
+        element.style.display = null;
     }
     else {
         element.style.display = 'none';
     }
 };
+
+let showOnlyDeedRowsWithClass = (deedRowClass) => {
+    let table = document.getElementById("deedTable");
+    for (let row of table.rows) {
+        setElementVisibility(row, row.className == "" || row.className == deedRowClass);
+    }
+}
 
 function updateTradeSlider(gameState) {
     tradeSlider.setAttribute("min", Math.min (0, -1 * gameState.get_player_funds (gameState.get_controlling_player_index())));
@@ -74,18 +81,31 @@ function updateDeedCard(gameState) {
         setElementVisibility(deedTableContainer, false);
     }
     else {
-        let bgColor = groupToColor(Module.property_group(featuredDeed));
+        let group = Module.property_group(featuredDeed);
+        let bgColor = groupToColor(group);
         propertyLabel.style.backgroundColor = bgColor;
         propertyLabel.style.color = pickTextColorBasedOnBgColor(bgColor);
         propertyLabel.innerHTML = Module.property_to_string(featuredDeed);
-        var baseRentLabel = document.getElementById("baseRentLabel");
-        baseRentLabel.innerHTML = "$" + Module.rent_price_of_real_estate(featuredDeed);
-        for (let i = 0; i <= 5; ++i) {
-            var label = document.getElementById("rent" + i + "Label");
-            label.innerHTML = "$" + Module.rent_price_of_improved_real_estate(featuredDeed, i);
+
+        let deedRowClass = "";
+        if (group == Module.PropertyGroup.Utility) {
+            deedRowClass = 'utilityDeedRow';
         }
-        var houseCostLabel = document.getElementById("buildingCostLabel");
-        houseCostLabel.innerHTML = "$" + Module.price_per_house_on_property(featuredDeed);
+        else if (group == Module.PropertyGroup.Railroad) {
+            deedRowClass = 'railroadDeedRow';
+        }
+        else {
+            deedRowClass = 'realEstateDeedRow';
+            var baseRentLabel = document.getElementById("baseRentLabel");
+            baseRentLabel.innerHTML = "$" + Module.rent_price_of_real_estate(featuredDeed);
+            for (let i = 0; i <= 5; ++i) {
+                var label = document.getElementById("rent" + i + "Label");
+                label.innerHTML = "$" + Module.rent_price_of_improved_real_estate(featuredDeed, i);
+            }
+            var houseCostLabel = document.getElementById("buildingCostLabel");
+            houseCostLabel.innerHTML = "$" + Module.price_per_house_on_property(featuredDeed);
+        }
+        showOnlyDeedRowsWithClass(deedRowClass);
         setElementVisibility(deedTableContainer, true);
     }
 }
@@ -313,7 +333,6 @@ let rebuildTradeTable = () => {
     let row = tradeTable.insertRow();
     row.setAttribute("height", "20%");
     row.setAttribute("width", "100%");
-    row.setAttribute("display", "block");
     let offeringPlayerFundsCell = row.insertCell();
     let consideringPlayerFundsCell = row.insertCell();
     offeringPlayerFundsCell.setAttribute("width", "50%");
@@ -324,7 +343,6 @@ let rebuildTradeTable = () => {
         let row = tradeTable.insertRow();
         row.setAttribute("height", "20%");
         row.setAttribute("width", "100%");
-        row.setAttribute("display", "block");
         addCell(row, r, trade.offer);
         addCell(row, r, trade.consideration);
     }
