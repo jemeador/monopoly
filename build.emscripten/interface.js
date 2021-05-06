@@ -389,6 +389,14 @@ var makeFont = (pixelSize, fontFamily) => {
 };
 
 var Module = {
+    print: (function () {
+        return function (text) {
+            var log = document.getElementById('log');
+            console.log(text);
+            log.value += text + "\n";
+            log.scrollTop = log.scrollHeight;
+        }
+    })(),
     onRuntimeInitialized: function () {
         var rollButton = document.getElementById("rollButton");
         var buyPropertyButton = document.getElementById("buyPropertyButton");
@@ -1009,6 +1017,8 @@ var Module = {
                 ctx.fillRect(0, 0, boardWidth, boardHeight);
                 ctx.restore();
             }
+
+            document.getElementsByTagName("html")[0].style.display = 'inline';
         }
     }
 }

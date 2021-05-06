@@ -1,3 +1,7 @@
+html {
+    display: none;
+}
+
 .button {
     background-color: #4CAF50; /* Green */
     border: none;
@@ -231,4 +235,9 @@ th, td {
   height: 25px;
   background: #04AA6D;
   cursor: pointer;
+}
+
+#log {
+  width: 900px;
+  height: 75px;
 }
