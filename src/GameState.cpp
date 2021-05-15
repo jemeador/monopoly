@@ -263,7 +263,6 @@ int GameState::calculate_liquid_value_of_promise(Promise promise) const {
 std::pair<int, int> GameState::random_dice_roll() {
     std::uniform_int_distribution<int> rollDie(1, 6);
     lastDiceRoll = std::pair<int, int>{ rollDie(rng), rollDie(rng) };
-    std::cout << "\t[" << lastDiceRoll.first << "] [" << lastDiceRoll.second << "]" << "\n";
     return lastDiceRoll;
 }
 
@@ -620,12 +619,14 @@ bool GameState::check_if_player_can_pay_closing_costs(int playerIndex, Promise l
 }
 
 void GameState::player_action_roll(int playerIndex) {
+    std::cout << player_name(playerIndex) << " rolled the dice" << std::endl;
     force_roll(playerIndex, random_dice_roll());
     resolve_game_state();
 }
 
 void GameState::player_action_use_get_out_of_jail_free_card(int playerIndex, DeckType preferredDeckType) {
     assert(check_if_player_is_allowed_to_use_get_out_jail_free_card(playerIndex));
+    std::cout << player_name(playerIndex) << " used a get out of jail free card" << std::endl;
     auto& player = players[playerIndex];
     if (player.turnsRemainingInJail == 0)
         return;
@@ -643,6 +644,7 @@ void GameState::player_action_use_get_out_of_jail_free_card(int playerIndex, Dec
 
 void GameState::player_action_pay_bail(int playerIndex) {
     assert(check_if_player_is_allowed_to_pay_bail(playerIndex));
+    std::cout << player_name(playerIndex) << " paid bail" << std::endl;
     force_pay_bail(playerIndex);
     resolve_game_state();
 }
@@ -650,6 +652,7 @@ void GameState::player_action_pay_bail(int playerIndex) {
 void GameState::player_action_buy_property(int playerIndex) {
     assert(check_if_player_is_allowed_to_buy_property(playerIndex));
     auto const landedOnProperty = space_to_property(players[playerIndex].position);
+    std::cout << player_name(playerIndex) << " bought " << to_string(landedOnProperty) << std::endl;
     force_subtract_funds(playerIndex, price_of_property(landedOnProperty));
     force_give_deed(playerIndex, landedOnProperty);
     pendingPurchaseDecision = false;
@@ -659,6 +662,7 @@ void GameState::player_action_buy_property(int playerIndex) {
 void GameState::player_action_auction_property(int playerIndex) {
     assert(check_if_player_is_allowed_to_auction_property(playerIndex));
     auto const landedOnProperty = space_to_property(players[playerIndex].position);
+    std::cout << player_name(playerIndex) << " declined to buy " << to_string(landedOnProperty) << std::endl;
     propertiesPendingAuction.push(landedOnProperty);
     pendingPurchaseDecision = false;
     resolve_game_state();
@@ -666,6 +670,7 @@ void GameState::player_action_auction_property(int playerIndex) {
 
 void GameState::player_action_mortgage(int playerIndex, Property property) {
     assert(check_if_player_is_allowed_to_mortgage(playerIndex, property));
+    std::cout << player_name(playerIndex) << " mortgaged " << to_string(property) << std::endl;
     force_set_mortgaged(property, true);
     force_add_funds(playerIndex, mortgage_value_of_property(property));
     resolve_game_state();
@@ -673,6 +678,7 @@ void GameState::player_action_mortgage(int playerIndex, Property property) {
 
 void GameState::player_action_unmortgage(int playerIndex, Property property) {
     assert(check_if_player_is_allowed_to_unmortgage(playerIndex, property));
+    std::cout << player_name(playerIndex) << " unmortgaged " << to_string(property) << std::endl;
     force_set_mortgaged(property, false);
     force_subtract_funds(playerIndex, unmortgage_price_of_property(property));
     resolve_game_state();
@@ -680,6 +686,7 @@ void GameState::player_action_unmortgage(int playerIndex, Property property) {
 
 void GameState::player_action_buy_building(int playerIndex, Property property) {
     assert(check_if_player_is_allowed_to_buy_building(playerIndex, property));
+    std::cout << player_name(playerIndex) << " bought a building on " << to_string(property) << std::endl;
     force_add_building(property);
     force_subtract_funds(playerIndex, price_per_house_on_property(property));
     resolve_game_state();
@@ -687,6 +694,7 @@ void GameState::player_action_buy_building(int playerIndex, Property property) {
 
 void GameState::player_action_sell_building(int playerIndex, Property property) {
     assert(check_if_player_is_allowed_to_sell_building(playerIndex, property));
+    std::cout << player_name(playerIndex) << " sold a building on " << to_string(property) << std::endl;
     force_remove_building(property);
     force_add_funds(playerIndex, sell_price_per_house_on_property(property));
     resolve_game_state();
@@ -694,12 +702,14 @@ void GameState::player_action_sell_building(int playerIndex, Property property) 
 
 void GameState::player_action_sell_all_buildings(int playerIndex, PropertyGroup group) { 
     assert(check_if_player_is_allowed_to_sell_all_buildings(playerIndex, group));
+    std::cout << player_name(playerIndex) << " sold all bulding in color group " << to_string(group) << std::endl;
     force_sell_all_buildings(playerIndex, group);
     resolve_game_state();
 }
 
 void GameState::player_action_bid(int playerIndex, int amount) {
     assert(check_if_player_is_allowed_to_bid (playerIndex, amount));
+    std::cout << player_name(playerIndex) << " bid $" << amount << std::endl;
     currentAuction.highestBid = amount;
     currentAuction.biddingOrder.erase(currentAuction.biddingOrder.begin ());
     currentAuction.biddingOrder.push_back(playerIndex);
@@ -708,6 +718,7 @@ void GameState::player_action_bid(int playerIndex, int amount) {
 
 void GameState::player_action_decline_bid(int playerIndex) {
     assert(check_if_player_is_allowed_to_decline_bid (playerIndex));
+    std::cout << player_name(playerIndex) << " has declined to bid" << std::endl;
     currentAuction.biddingOrder.erase(currentAuction.biddingOrder.begin ());
     resolve_game_state();
 }
@@ -717,9 +728,16 @@ void GameState::player_action_offer_trade(Trade trade) {
 
     if (pendingTradeAgreement && trades_are_reciprocal(trade, *pendingTradeAgreement)) {
         pendingTradeAgreement = {};
+        std::cout << player_name(trade.offeringPlayer) << " accepted the offer from " << trade.consideringPlayer << std::endl;
         force_trade(trade);
     }
     else {
+        if (pendingTradeAgreement) {
+            std::cout << player_name(trade.offeringPlayer) << " made a counter-offer to " << trade.consideringPlayer << std::endl;
+        }
+        else {
+            std::cout << player_name(trade.offeringPlayer) << " offered a trade to " << trade.consideringPlayer << std::endl;
+        }
         pendingTradeAgreement = trade;
     }
     resolve_game_state();
@@ -727,18 +745,21 @@ void GameState::player_action_offer_trade(Trade trade) {
 
 void GameState::player_action_decline_trade(int playerIndex) {
     assert(check_if_player_is_allowed_to_decline_trade(playerIndex));
+    std::cout << player_name(playerIndex) << " rejected the offer" << std::endl;
     pendingTradeAgreement = {};
     resolve_game_state();
 }
 
 void GameState::player_action_end_turn(int playerIndex) {
     assert(check_if_player_is_allowed_to_end_turn(playerIndex));
+    std::cout << player_name(playerIndex) << " ended their turn" << std::endl;
     force_start_turn(get_next_player_index());
     resolve_game_state();
 }
 
 void GameState::player_action_resign(int resigneeIndex) {
     assert(check_if_player_is_allowed_to_resign(resigneeIndex));
+    std::cout << player_name(resigneeIndex) << " declared bankruptcy! " << std::endl;
     std::optional<int> creditor;
     for (auto debtIt = pendingDebtSettlements.begin(); debtIt != pendingDebtSettlements.end();) {
         if (debtIt->debtor == resigneeIndex) {
@@ -751,9 +772,11 @@ void GameState::player_action_resign(int resigneeIndex) {
         ++debtIt;
     }
     if (creditor) {
+        std::cout << player_name(resigneeIndex) << " must hand over all assets to " << player_name(*creditor) << std::endl;
         force_bankrupt_by_player(resigneeIndex, *creditor);
     }
     else {
+        std::cout << player_name(resigneeIndex) << " will have their properties put up for auction" << std::endl;
 		force_bankrupt_by_bank(resigneeIndex);
     }
     if (check_if_player_is_allowed_to_auction_property (resigneeIndex)) {
@@ -811,7 +834,7 @@ void GameState::force_transfer_funds(int fromPlayerIndex, int toPlayerIndex, int
     players[fromPlayerIndex].funds -= funds;
     players[toPlayerIndex].funds += funds;
 
-    std::cout << player_name(fromPlayerIndex) << " -($" << funds << ")-> " << player_name(toPlayerIndex) << std::endl;
+    std::cout << player_name(fromPlayerIndex) << " pays $" << funds << " to " << player_name(toPlayerIndex) << std::endl;
 
     if (players[fromPlayerIndex].funds < 0)
         force_liquidate_to_pay_player_prompt(fromPlayerIndex, toPlayerIndex, -players[fromPlayerIndex].funds);
@@ -840,7 +863,7 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
     activePlayerIndex = playerIndex;
     lastDiceRoll = roll;
 
-    std::cout << "Rolled " << roll.first << "," << roll.second << std::endl;
+    std::cout << player_name(playerIndex) << " rolled [" << roll.first << "] [" << roll.second << "]" << std::endl;
 
     if (roll.first == roll.second) {
         doublesStreak += 1;
@@ -876,24 +899,33 @@ void GameState::force_roll(int playerIndex, std::pair<int, int> roll) {
     }
 
     pendingRoll = doublesStreak > 0;
+    if (pendingRoll)
+        std::cout << player_name(playerIndex) << " gets an extra roll for rolling doubles" << std::endl;
+
     int const sum = roll.first + roll.second;
     force_advance(playerIndex, sum);
 }
 
 void GameState::force_advance(int playerIndex, int dist) {
     auto const currentPos = players[playerIndex].position;
+    std::cout << player_name(playerIndex) << " advanced " << dist << " spaces" << std::endl;
 
-    if (advancing_will_pass_go(currentPos, dist))
+    if (advancing_will_pass_go(currentPos, dist)) {
+        std::cout << player_name(playerIndex) << " passed " << to_string(Space::Go) << std::endl;
         force_add_funds(playerIndex, GoSalary);
+    }
 
     force_land(playerIndex, add_distance(players[playerIndex].position, dist));
 }
 
 void GameState::force_advance_without_landing(int playerIndex, int dist) {
     auto const currentPos = players[playerIndex].position;
+    std::cout << player_name(playerIndex) << " advanced " << dist << " spaces" << std::endl;
 
-    if (advancing_will_pass_go(currentPos, dist))
+    if (advancing_will_pass_go(currentPos, dist)) {
+        std::cout << player_name(playerIndex) << " passed " << to_string(Space::Go) << std::endl;
         force_add_funds(playerIndex, GoSalary);
+    }
 
     force_position(playerIndex, add_distance(players[playerIndex].position, dist));
 }
@@ -910,6 +942,7 @@ void GameState::force_advance_to_without_landing(int playerIndex, Space space) {
 
 void GameState::force_land(int playerIndex, Space space) {
     activePlayerIndex = playerIndex;
+    std::cout << player_name(playerIndex) << " landed on " << to_string(space) << std::endl;
     force_leave_jail(playerIndex);
     force_position(playerIndex, space);
     if (space_is_property(space))
@@ -1159,13 +1192,14 @@ void GameState::force_bankrupt_by_player(int debtorPlayerIndex, int creditorPlay
 }
 
 void GameState::force_property_offer_prompt(int playerIndex, Property property) {
-    std::cout << "Offering unowned property " << to_string(property) << std::endl;
+    std::cout << player_name(playerIndex) << ": Buy " << to_string(property) << " or let it go to auction?" << std::endl;
     activePlayerIndex = playerIndex;
     pendingPurchaseDecision = true;
     resolve_game_state();
 }
 
 void GameState::force_liquidate_to_pay_bank_prompt(int debtorPlayerIndex, int amount) {
+    std::cout << player_name(debtorPlayerIndex) << ": You are in debt. Manage property or trade to come up with the funds OR declare bankruptcy!" << std::endl;
     Debt debt;
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
@@ -1173,6 +1207,8 @@ void GameState::force_liquidate_to_pay_bank_prompt(int debtorPlayerIndex, int am
 }
 
 void GameState::force_liquidate_to_pay_player_prompt(int debtorPlayerIndex, int creditorPlayerIndex, int amount) {
+    std::cout << player_name(debtorPlayerIndex) << ": You are in debt to " << player_name(creditorPlayerIndex)
+        << ". Manage property or trade to come up with the funds OR declare bankruptcy!" << std::endl;
     Debt debt;
     debt.debtor = debtorPlayerIndex;
     debt.amount = amount;
@@ -1275,6 +1311,7 @@ void GameState::resolve_auction() {
         }
     }
     else {
+        std::cout << player_name(highestBidderIndex) << " won the auction of " << to_string(currentAuction.property) << " for $" << currentAuction.highestBid << std::endl;
         auto const payment = currentAuction.highestBid + calculate_closing_costs_on_sale(currentAuction.property);
         pendingAuctionSale = { highestBidderIndex, currentAuction.property };
         currentAuction = {};
@@ -1290,9 +1327,11 @@ void GameState::resolve_auction_sale() {
 
     assert(pendingDebtSettlements.empty());
     if (! players[highestBidderIndex].eliminated) {
+        std::cout << player_name(highestBidderIndex) << " received " << to_string(property) << std::endl;
         force_give_deed(highestBidderIndex, property);
     }
     else {
+        std::cout << player_name(highestBidderIndex) << " won the bid, but declared bankruptcy, " << to_string(property) << " goes back up for auction" << std::endl;
         propertiesPendingAuction.push(property);
     }
     pendingAuctionSale = {};
@@ -1300,7 +1339,7 @@ void GameState::resolve_auction_sale() {
 }
 
 void GameState::resolve_queued_auction(Property property) {
-    std::cout << "Auctioning property" << to_string (property) << std::endl;
+    std::cout << "Auctioning property " << to_string (property) << std::endl;
     currentAuction = Auction{};
     // Determine order of auction
     for (int i = get_next_player_index(activePlayerIndex); i != activePlayerIndex; i = get_next_player_index(i)) {

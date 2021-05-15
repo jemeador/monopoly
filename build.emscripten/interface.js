@@ -283,6 +283,18 @@ let groupToColor = (group) => {
     }
 }
 
+function makeRandomSeed() {
+    // Not perfect or very efficient, but it should do for ensuring some variety in the seed
+    let seed = "";
+    for (let i = 0; i < 128; ++i)
+        seed += makeRandomHexByte().toString (16);
+    return seed;
+}
+
+function makeRandomHexByte() {
+    return Math.random () * 0xff
+}
+
 // Stack Overflow
 // "How to decide font color in white or black depending on background color?"
 // https://stackoverflow.com/a/41491220
@@ -429,7 +441,7 @@ var Module = {
             // C++ override
             get_setup: function () {
                 return {
-                    seed: "monopolyRandomSeed!",
+                    seed: makeRandomSeed(),
                     playerCount: 2,
                     startingFunds: 1500,
                 };

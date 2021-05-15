@@ -11,16 +11,16 @@ namespace {
 
     json const& string_data() {
         static json const strings = []() {
+            std::string const path(DATA_INSTALL_PREFIX);
+            auto const filePath = path + "strings.json";
             try {
-                std::string const path(DATA_INSTALL_PREFIX);
-                auto const filePath = path + "strings.json";
                 std::ifstream i(filePath);
-                std::cout << "Reading display strings from " << filePath << std::endl;
                 json j;
                 i >> j;
                 return j;
             }
             catch (json::exception& e) {
+                std::cerr << "Exception when reading string data from " << filePath << " ... " << std::endl;
                 std::cerr << e.what() << std::endl;
                 return json{};
             }

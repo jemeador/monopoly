@@ -29,4 +29,8 @@ http.createServer(function (request, response) {
         response.writeHeader(200, { 'Content-Type': 'application/wasm' });
         fs.readFile('.' + request.url, fileHandler);
     }
+    else if (request.url.endsWith ('.ico')) {
+        response.writeHeader(200, { 'Content-Type': 'image/ico' });
+        fs.readFile('.' + request.url, fileHandler);
+    }
 }).listen(port);
